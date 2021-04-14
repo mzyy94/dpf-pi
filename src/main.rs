@@ -12,6 +12,7 @@ use std::os::raw::c_void;
 pub enum OMXError {
     CreateComponentFailed,
     UnableToGetParameter,
+    UnableToSetParameter,
 }
 
 struct Image {
@@ -64,6 +65,16 @@ impl Element {
         unsafe {
             if wOMX_GetParameter(self.handle, index, param) != OMX_ERRORTYPE_OMX_ErrorNone {
                 return Err(OMXError::UnableToGetParameter);
+            }
+            Ok(())
+        }
+    }
+
+    pub fn set_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
+        let param = param as *mut _ as *mut c_void;
+        unsafe {
+            if wOMX_SetParameter(self.handle, index, param) != OMX_ERRORTYPE_OMX_ErrorNone {
+                return Err(OMXError::UnableToSetParameter);
             }
             Ok(())
         }
