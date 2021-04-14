@@ -47,6 +47,16 @@ enum Direction {
     Out,
 }
 
+fn set_image_defs(image: &mut OMX_IMAGE_PORTDEFINITIONTYPE, width: u32, height: u32) {
+    image.nFrameWidth = width;
+    image.nFrameHeight = height;
+    image.nStride = 0;
+    image.nSliceHeight = 0;
+    image.bFlagErrorConcealment = OMX_BOOL_OMX_FALSE;
+    image.eCompressionFormat = OMX_IMAGE_CODINGTYPE_OMX_IMAGE_CodingUnused;
+    image.eColorFormat = OMX_COLOR_FORMATTYPE_OMX_COLOR_Format32bitABGR8888;
+}
+
 impl Element {
     pub fn create(
         &mut self,
@@ -103,6 +113,39 @@ impl Element {
         }
 
         Ok(())
+    }
+
+    pub fn set_image_size(
+        &mut self,
+        direction: Direction,
+        width: u32,
+        height: u32,
+        buffer_size: Option<u32>,
+    ) -> Result<(), OMXError> {
+        let port = match direction {
+            Direction::In => self.in_port,
+            Direction::Out => self.out_port,
+        };
+
+        unsafe {
+            let mut port = OMX_PARAM_PORTDEFINITIONTYPE {
+                nSize: size_of::<OMX_PARAM_PORTDEFINITIONTYPE>() as u32,
+                nVersion: OMX_VERSIONTYPE {
+                    nVersion: OMX_VERSION,
+                },
+                nPortIndex: port,
+                ..zeroed()
+            };
+
+            self.get_parameter(OMX_INDEXTYPE_OMX_IndexParamPortDefinition, &mut port)?;
+
+            set_image_defs(&mut port.format.image, width, height);
+            if let Some(size) = buffer_size {
+                port.nBufferSize = size;
+            }
+
+            self.set_parameter(OMX_INDEXTYPE_OMX_IndexParamPortDefinition, &mut port)
+        }
     }
 }
 
