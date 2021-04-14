@@ -4,8 +4,14 @@
 #![allow(dead_code)]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
+use std::ffi::CString;
 use std::mem::zeroed;
 use std::os::raw::c_void;
+
+#[derive(Debug)]
+pub enum OMXError {
+    CreateComponentFailed,
+}
 
 struct Image {
     data: Vec<u8>,
@@ -27,6 +33,28 @@ impl Default for Element {
             handle: 0 as *mut c_void,
             in_port: 0,
             out_port: 0,
+        }
+    }
+}
+
+impl Element {
+    pub fn create(
+        &mut self,
+        client: *mut ILCLIENT_T,
+        name: String,
+        flags: ILCLIENT_CREATE_FLAGS_T,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            let name = CString::new(name).unwrap();
+
+            if ilclient_create_component(client, &mut self.component, name.into_raw(), flags)
+                != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::CreateComponentFailed);
+            }
+
+            self.handle = ilclient_get_handle(self.component);
+            Ok(())
         }
     }
 }
