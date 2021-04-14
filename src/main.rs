@@ -4,6 +4,7 @@ mod image;
 
 use component::*;
 use image::Image;
+use std::fs::File;
 
 fn main() {
     init_bcm_omx();
@@ -13,10 +14,15 @@ fn main() {
 
     let (width, height) = get_display_size();
 
+    let decoder = png::Decoder::new(File::open("./rust-logo-512x512.png").unwrap());
+    let (info, mut reader) = decoder.read_info().unwrap();
+    let mut buf = vec![0; info.buffer_size()];
+    reader.next_frame(&mut buf).unwrap();
+
     let mut image = Image {
-        width: 1,
-        height: 1,
-        data: vec![0x80, 0x80, 0x80, 0xff],
+        width: info.width,
+        height: info.height,
+        data: buf,
     };
 
     pipeline.prepare_image(&mut image).unwrap();
