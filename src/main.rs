@@ -26,14 +26,14 @@ struct Image {
     height: u32,
 }
 
-struct Element {
+struct Component {
     component: *mut COMPONENT_T,
     handle: OMX_HANDLETYPE,
     in_port: u32,
     out_port: u32,
 }
 
-impl Default for Element {
+impl Default for Component {
     fn default() -> Self {
         Self {
             component: &mut COMPONENT_T { _unused: [] },
@@ -70,7 +70,7 @@ fn set_image_defs(image: &mut OMX_IMAGE_PORTDEFINITIONTYPE, width: u32, height: 
     image.eColorFormat = OMX_COLOR_FORMATTYPE_OMX_COLOR_Format32bitABGR8888;
 }
 
-impl Element {
+impl Component {
     pub fn create(
         &mut self,
         client: *mut ILCLIENT_T,
@@ -179,8 +179,8 @@ impl Element {
 struct Pipeline {
     client: *mut ILCLIENT_T,
     buffer_header: *mut OMX_BUFFERHEADERTYPE,
-    render: Element,
-    resize: Element,
+    render: Component,
+    resize: Component,
 }
 
 impl Pipeline {
