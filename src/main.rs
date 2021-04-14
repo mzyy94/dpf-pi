@@ -328,26 +328,38 @@ impl Pipeline {
     }
 }
 
-fn main() {
+fn init_bcm_omx() {
     unsafe {
         bcm_host_init();
         OMX_Init();
+    }
+}
 
-        let mut pipeline = Pipeline::new();
-        pipeline.init().unwrap();
-
+fn get_display_size() -> (u32, u32) {
+    unsafe {
         let mut width: u32 = 0;
         let mut height: u32 = 0;
         graphics_get_display_size(0, &mut width, &mut height);
-
-        let mut image = Image {
-            width: 1,
-            height: 1,
-            data: vec![0x80, 0x80, 0x80, 0xff],
-        };
-
-        pipeline.prepare_image(&mut image).unwrap();
-        pipeline.render_image(&image, width, height, 2000).unwrap();
+        (width, height)
     }
+}
+
+fn main() {
+    init_bcm_omx();
+
+    let mut pipeline = Pipeline::new();
+    pipeline.init().unwrap();
+
+    let (width, height) = get_display_size();
+
+    let mut image = Image {
+        width: 1,
+        height: 1,
+        data: vec![0x80, 0x80, 0x80, 0xff],
+    };
+
+    pipeline.prepare_image(&mut image).unwrap();
+    pipeline.render_image(&image, width, height, 2000).unwrap();
+
     println!("Hello, world!");
 }
