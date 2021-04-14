@@ -11,6 +11,7 @@ use std::os::raw::c_void;
 #[derive(Debug)]
 pub enum OMXError {
     CreateComponentFailed,
+    UnableToGetParameter,
 }
 
 struct Image {
@@ -54,6 +55,16 @@ impl Element {
             }
 
             self.handle = ilclient_get_handle(self.component);
+            Ok(())
+        }
+    }
+
+    pub fn get_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
+        let param = param as *mut _ as *mut c_void;
+        unsafe {
+            if wOMX_GetParameter(self.handle, index, param) != OMX_ERRORTYPE_OMX_ErrorNone {
+                return Err(OMXError::UnableToGetParameter);
+            }
             Ok(())
         }
     }
