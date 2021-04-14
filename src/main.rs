@@ -8,23 +8,10 @@ use std::ffi::CString;
 use std::mem::{size_of, zeroed};
 use std::os::raw::c_void;
 
-#[derive(Debug)]
-pub enum OMXError {
-    CreateComponentFailed,
-    UnableToGetParameter,
-    UnableToSetParameter,
-    InvalidNumberOfPorts,
-    SendCommandFailed,
-    UseBufferFailed,
-    EmptyBufferFailed,
-    EventTimeout,
-}
-
-struct Image {
-    data: Vec<u8>,
-    width: u32,
-    height: u32,
-}
+mod error;
+use error::OMXError;
+mod image;
+use image::Image;
 
 struct Component {
     component: *mut COMPONENT_T,
