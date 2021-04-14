@@ -16,6 +16,8 @@ pub enum OMXError {
     InvalidNumberOfPorts,
     SendCommandFailed,
     UseBufferFailed,
+    EmptyBufferFailed,
+    EventTimeout,
 }
 
 struct Image {
@@ -269,6 +271,73 @@ impl Pipeline {
         self.resize.set_state(State::Executing);
 
         Ok(())
+    }
+
+    fn render_image(
+        &mut self,
+        image: &Image,
+        width: u32,
+        height: u32,
+        timeout: i32,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            (*self.buffer_header).nFilledLen = image.data.len() as u32;
+            (*self.buffer_header).nFlags = OMX_BUFFERFLAG_EOS;
+
+            if wOMX_EmptyThisBuffer(self.resize.handle, self.buffer_header)
+                != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::EmptyBufferFailed);
+            }
+
+            if ilclient_wait_for_event(
+                self.resize.component,
+                OMX_EVENTTYPE_OMX_EventPortSettingsChanged,
+                self.resize.out_port,
+                0,
+                0,
+                1,
+                (ILEVENT_MASK_T_ILCLIENT_EVENT_ERROR | ILEVENT_MASK_T_ILCLIENT_PARAMETER_CHANGED)
+                    as i32,
+                timeout,
+            ) != 0
+            {
+                return Err(OMXError::EventTimeout);
+            }
+
+            self.render.set_state(State::Idle);
+            self.render.set_state(State::Executing);
+
+            self.resize
+                .set_image_size(Direction::Out, width, height, None)?;
+            self.render
+                .set_image_size(Direction::In, width, height, None)?;
+
+            OMX_SetupTunnel(
+                self.resize.handle,
+                self.resize.out_port,
+                self.render.handle,
+                self.render.in_port,
+            );
+
+            self.resize
+                .send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, Direction::Out)?;
+            self.render
+                .send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, Direction::In)?;
+
+            ilclient_wait_for_event(
+                self.render.component,
+                OMX_EVENTTYPE_OMX_EventBufferFlag,
+                self.render.in_port,
+                0,
+                OMX_BUFFERFLAG_EOS,
+                0,
+                ILEVENT_MASK_T_ILCLIENT_BUFFER_FLAG_EOS as i32,
+                timeout,
+            );
+
+            Ok(())
+        }
     }
 }
 
