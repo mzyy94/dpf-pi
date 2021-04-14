@@ -14,6 +14,7 @@ pub enum OMXError {
     UnableToGetParameter,
     UnableToSetParameter,
     InvalidNumberOfPorts,
+    SendCommandFailed,
 }
 
 struct Image {
@@ -38,6 +39,12 @@ impl Default for Element {
             out_port: 0,
         }
     }
+}
+
+#[derive(Debug)]
+enum Direction {
+    In,
+    Out,
 }
 
 impl Element {
@@ -79,6 +86,23 @@ impl Element {
             }
             Ok(())
         }
+    }
+
+    pub fn send_command(&self, cmd: OMX_COMMANDTYPE, direction: Direction) -> Result<(), OMXError> {
+        let port = match direction {
+            Direction::In => self.in_port,
+            Direction::Out => self.out_port,
+        };
+
+        unsafe {
+            if wOMX_SendCommand(self.handle, cmd, port, std::ptr::null_mut())
+                != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::SendCommandFailed);
+            }
+        }
+
+        Ok(())
     }
 }
 
