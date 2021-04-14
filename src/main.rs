@@ -47,6 +47,16 @@ enum Direction {
     Out,
 }
 
+#[derive(Debug)]
+enum State {
+    Invalid,
+    Loaded,
+    Idle,
+    Executing,
+    Pause,
+    WaitForResources,
+}
+
 fn set_image_defs(image: &mut OMX_IMAGE_PORTDEFINITIONTYPE, width: u32, height: u32) {
     image.nFrameWidth = width;
     image.nFrameHeight = height;
@@ -145,6 +155,20 @@ impl Element {
             }
 
             self.set_parameter(OMX_INDEXTYPE_OMX_IndexParamPortDefinition, &mut port)
+        }
+    }
+
+    pub fn set_state(&mut self, state: State) {
+        let state = match state {
+            State::Invalid => OMX_STATETYPE_OMX_StateInvalid,
+            State::Loaded => OMX_STATETYPE_OMX_StateLoaded,
+            State::Idle => OMX_STATETYPE_OMX_StateIdle,
+            State::Executing => OMX_STATETYPE_OMX_StateExecuting,
+            State::Pause => OMX_STATETYPE_OMX_StatePause,
+            State::WaitForResources => OMX_STATETYPE_OMX_StateWaitForResources,
+        };
+        unsafe {
+            ilclient_change_component_state(self.component, state);
         }
     }
 }
