@@ -33,6 +33,7 @@ fn build_binding() {
         .define("USE_VCHIQ_ARM", None)
         .file("/opt/vc/src/hello_pi/libs/ilclient/ilclient.c")
         .file("/opt/vc/src/hello_pi/libs/ilclient/ilcore.c")
+        .file("./wrapper.c")
         .include("/opt/vc/src/hello_pi/libs/ilclient/")
         .include("/opt/vc/include/")
         .include("/opt/vc/include/interface/vcos/pthreads")
@@ -68,6 +69,7 @@ fn build_binding() {
         .clang_arg("-I/usr/include/")
         .header("/opt/vc/include/bcm_host.h")
         .header("/opt/vc/src/hello_pi/libs/ilclient/ilclient.h")
+        .header("./wrapper.h")
         .generate()
         .expect("Unable to generate bindings!");
 
