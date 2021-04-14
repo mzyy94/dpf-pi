@@ -15,6 +15,7 @@ pub enum OMXError {
     UnableToSetParameter,
     InvalidNumberOfPorts,
     SendCommandFailed,
+    UseBufferFailed,
 }
 
 struct Image {
@@ -235,6 +236,37 @@ impl Pipeline {
         }
         self.resize.in_port = port.nStartPortNumber;
         self.resize.out_port = port.nStartPortNumber + 1;
+
+        Ok(())
+    }
+
+    pub fn prepare_image(&mut self, image: &mut Image) -> Result<(), OMXError> {
+        self.resize.set_state(State::Idle);
+
+        self.resize.set_image_size(
+            Direction::In,
+            image.width,
+            image.height,
+            Some(image.data.len() as u32),
+        )?;
+        self.resize
+            .send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, Direction::In)?;
+
+        unsafe {
+            if wOMX_UseBuffer(
+                self.resize.handle,
+                &mut self.buffer_header,
+                self.resize.in_port,
+                std::ptr::null_mut(),
+                image.data.len() as u32,
+                image.data.as_mut_ptr(),
+            ) != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::UseBufferFailed);
+            }
+        }
+
+        self.resize.set_state(State::Executing);
 
         Ok(())
     }
