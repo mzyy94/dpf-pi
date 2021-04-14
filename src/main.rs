@@ -22,5 +22,8 @@ fn main() {
     pipeline.prepare_image(&mut image).unwrap();
     pipeline.render_image(&image, width, height, 2000).unwrap();
 
+    pipeline.destroy();
+    destroy_bcm_omx();
+
     println!("Hello, world!");
 }

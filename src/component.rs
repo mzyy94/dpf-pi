@@ -227,6 +227,12 @@ impl Pipeline {
         Ok(())
     }
 
+    pub fn destroy(&mut self) {
+        unsafe {
+            ilclient_destroy(self.client);
+        }
+    }
+
     pub fn prepare_image(&mut self, image: &mut Image) -> Result<(), OMXError> {
         self.resize.set_state(State::Idle);
 
@@ -330,6 +336,13 @@ pub fn init_bcm_omx() {
     unsafe {
         bcm_host_init();
         OMX_Init();
+    }
+}
+
+pub fn destroy_bcm_omx() {
+    unsafe {
+        OMX_Deinit();
+        bcm_host_deinit();
     }
 }
 
