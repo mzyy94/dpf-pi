@@ -5,7 +5,7 @@
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 use std::ffi::CString;
-use std::mem::zeroed;
+use std::mem::{size_of, zeroed};
 use std::os::raw::c_void;
 
 #[derive(Debug)]
@@ -13,6 +13,7 @@ pub enum OMXError {
     CreateComponentFailed,
     UnableToGetParameter,
     UnableToSetParameter,
+    InvalidNumberOfPorts,
 }
 
 struct Image {
@@ -100,6 +101,51 @@ impl Pipeline {
                 resize: Default::default(),
             }
         }
+    }
+
+    pub fn init(&mut self) -> Result<(), OMXError> {
+        let mut port = OMX_PORT_PARAM_TYPE {
+            nSize: size_of::<OMX_PORT_PARAM_TYPE>() as u32,
+            nVersion: OMX_VERSIONTYPE {
+                nVersion: OMX_VERSION,
+            },
+            nPorts: 0,
+            nStartPortNumber: 0,
+        };
+
+        self.render.create(
+            self.client,
+            "video_render".to_string(),
+            ILCLIENT_CREATE_FLAGS_T_ILCLIENT_DISABLE_ALL_PORTS
+                | ILCLIENT_CREATE_FLAGS_T_ILCLIENT_ENABLE_INPUT_BUFFERS,
+        )?;
+
+        self.render
+            .get_parameter(OMX_INDEXTYPE_OMX_IndexParamVideoInit, &mut port)?;
+
+        if port.nPorts != 1 {
+            return Err(OMXError::InvalidNumberOfPorts);
+        }
+        self.render.in_port = port.nStartPortNumber;
+
+        self.resize.create(
+            self.client,
+            "resize".to_string(),
+            ILCLIENT_CREATE_FLAGS_T_ILCLIENT_DISABLE_ALL_PORTS
+                | ILCLIENT_CREATE_FLAGS_T_ILCLIENT_ENABLE_INPUT_BUFFERS
+                | ILCLIENT_CREATE_FLAGS_T_ILCLIENT_ENABLE_OUTPUT_BUFFERS,
+        )?;
+
+        self.resize
+            .get_parameter(OMX_INDEXTYPE_OMX_IndexParamImageInit, &mut port)?;
+
+        if port.nPorts != 2 {
+            return Err(OMXError::InvalidNumberOfPorts);
+        }
+        self.resize.in_port = port.nStartPortNumber;
+        self.resize.out_port = port.nStartPortNumber + 1;
+
+        Ok(())
     }
 }
 
