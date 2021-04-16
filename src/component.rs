@@ -4,19 +4,12 @@
 #![allow(dead_code)]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
+use image::RgbaImage;
 use std::ffi::CString;
 use std::mem::{size_of, zeroed};
 use std::os::raw::c_void;
 
 use crate::error::OMXError;
-
-#[derive(Debug)]
-pub struct Image {
-    pub data: Vec<u8>,
-    pub width: u32,
-    pub height: u32,
-    pub size: u32,
-}
 
 struct Component {
     component: *mut COMPONENT_T,
@@ -290,11 +283,15 @@ impl Pipeline {
         }
     }
 
-    pub fn prepare_image(&mut self, image: &mut Image) -> Result<(), OMXError> {
+    pub fn prepare_image(&mut self, image: &RgbaImage) -> Result<(), OMXError> {
         self.resize.set_state(State::Idle);
 
-        self.resize
-            .set_image_size(Direction::In, image.width, image.height, Some(image.size))?;
+        self.resize.set_image_size(
+            Direction::In,
+            image.width(),
+            image.height(),
+            Some(image.len() as u32),
+        )?;
         self.resize
             .send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, Direction::In)?;
 
@@ -304,8 +301,8 @@ impl Pipeline {
                 &mut self.buffer_header,
                 self.resize.in_port,
                 std::ptr::null_mut(),
-                image.size,
-                image.data.as_mut_ptr(),
+                image.len() as u32,
+                image.as_raw().as_ptr(),
             ) != OMX_ERRORTYPE_OMX_ErrorNone
             {
                 return Err(OMXError::UseBufferFailed);
