@@ -4,6 +4,10 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    println!("cargo:rerun-if-changed=build.rs");
+    println!("cargo:rerun-if-changed=/opt/vc/src/hello_pi/libs/ilclient/ilclient.c");
+    println!("cargo:rerun-if-changed=wrapper.h");
+    println!("cargo:rerun-if-changed=wrapper.c");
     build_binding();
 }
 
@@ -57,7 +61,6 @@ fn build_binding() {
     println!("cargo:rustc-link-lib=rt");
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    println!("cargo:warnings=running-if-changed-bindgen");
     let bindings = bindgen::Builder::default()
         .clang_arg("-I/opt/vc/include/")
         .clang_arg("-I/opt/vc/include/interface/vcos/pthreads")
@@ -73,7 +76,6 @@ fn build_binding() {
         .generate()
         .expect("Unable to generate bindings!");
 
-    println!("cargo:rerun-if-changed=/opt/vc/src/hello_pi/libs/ilclient/ilclient.c");
     bindings
         .write_to_file(out_path.join("bindings.rs"))
         .expect("Couldn't write bindings!");
