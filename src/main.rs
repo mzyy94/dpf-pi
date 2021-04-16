@@ -20,9 +20,9 @@ fn main() {
     let (width, height) = get_display_size();
 
     let image = image::open(&Path::new(&file)).unwrap();
-    let image = image::DynamicImage::as_rgba8(&image).unwrap();
+    let image = image::DynamicImage::to_rgba8(&image);
 
-    pipeline.prepare_image(image).unwrap();
+    pipeline.prepare_image(&image).unwrap();
     pipeline
         .set_image_config(Some(OMX_DISPLAYRECTTYPE {
             x_offset: (width - image.width()) as i16 / 2,
