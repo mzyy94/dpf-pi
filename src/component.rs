@@ -106,6 +106,46 @@ impl Component {
         }
     }
 
+    pub fn set_display_region(
+        &mut self,
+        direction: Direction,
+        display_rect: Option<OMX_DISPLAYRECTTYPE>,
+    ) -> Result<(), OMXError> {
+        let port = match direction {
+            Direction::In => self.in_port,
+            Direction::Out => self.out_port,
+        };
+        unsafe {
+            let mut disp = OMX_CONFIG_DISPLAYREGIONTYPE {
+                nSize: size_of::<OMX_CONFIG_DISPLAYREGIONTYPE>() as u32,
+                nVersion: OMX_VERSIONTYPE {
+                    nVersion: OMX_VERSION,
+                },
+                nPortIndex: port,
+                set: OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_NUM
+                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_MODE
+                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_NOASPECT
+                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_FULLSCREEN
+                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_DEST_RECT
+                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_TRANSFORM,
+                num: 0,
+                mode: OMX_DISPLAYMODETYPE_OMX_DISPLAY_MODE_LETTERBOX,
+                noaspect: OMX_BOOL_OMX_TRUE,
+                fullscreen: match display_rect {
+                    None => OMX_BOOL_OMX_TRUE,
+                    _ => OMX_BOOL_OMX_FALSE,
+                },
+                dest_rect: match display_rect {
+                    Some(rect) => rect,
+                    None => zeroed(),
+                },
+                transform: OMX_DISPLAYTRANSFORMTYPE_OMX_DISPLAY_ROT0,
+                ..zeroed()
+            };
+            self.set_config(OMX_INDEXTYPE_OMX_IndexConfigDisplayRegion, &mut disp)
+        }
+    }
+
     pub fn send_command(&self, cmd: OMX_COMMANDTYPE, direction: Direction) -> Result<(), OMXError> {
         let port = match direction {
             Direction::In => self.in_port,
@@ -272,6 +312,13 @@ impl Pipeline {
         self.resize.set_state(State::Executing);
 
         Ok(())
+    }
+
+    pub fn set_image_config(
+        &mut self,
+        display_rect: Option<OMX_DISPLAYRECTTYPE>,
+    ) -> Result<(), OMXError> {
+        self.render.set_display_region(Direction::In, display_rect)
     }
 
     pub fn render_image(

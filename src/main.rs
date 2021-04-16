@@ -26,6 +26,15 @@ fn main() {
     };
 
     pipeline.prepare_image(&mut image).unwrap();
+    pipeline
+        .set_image_config(Some(OMX_DISPLAYRECTTYPE {
+            x_offset: (width - info.width) as i16 / 2,
+            y_offset: (height - info.height) as i16 / 2,
+            width: info.width as i16,
+            height: info.height as i16,
+        }))
+        .unwrap();
+
     pipeline.render_image(&image, width, height, 2000).unwrap();
 
     pipeline.destroy();
