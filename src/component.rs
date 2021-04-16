@@ -96,6 +96,16 @@ impl Component {
         }
     }
 
+    pub fn set_config<T>(&self, index: OMX_INDEXTYPE, config: &mut T) -> Result<(), OMXError> {
+        let config = config as *mut _ as *mut c_void;
+        unsafe {
+            if wOMX_SetConfig(self.handle, index, config) != OMX_ERRORTYPE_OMX_ErrorNone {
+                return Err(OMXError::UnableToSetConfig);
+            }
+            Ok(())
+        }
+    }
+
     pub fn send_command(&self, cmd: OMX_COMMANDTYPE, direction: Direction) -> Result<(), OMXError> {
         let port = match direction {
             Direction::In => self.in_port,
