@@ -2,9 +2,16 @@ mod component;
 mod error;
 
 use component::*;
+use std::env;
 use std::path::Path;
 
 fn main() {
+    let file = if env::args().count() == 2 {
+        env::args().nth(1).unwrap()
+    } else {
+        panic!("Usage: {} image", env::args().nth(0).unwrap())
+    };
+
     init_bcm_omx();
 
     let mut pipeline = Pipeline::new();
@@ -12,7 +19,7 @@ fn main() {
 
     let (width, height) = get_display_size();
 
-    let image = image::open(&Path::new("./rust-logo-512x512.png")).unwrap();
+    let image = image::open(&Path::new(&file)).unwrap();
     let image = image::DynamicImage::as_rgba8(&image).unwrap();
 
     pipeline.prepare_image(image).unwrap();
