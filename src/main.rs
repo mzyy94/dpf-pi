@@ -17,6 +17,7 @@ fn main() {
     let mut image = Image {
         width: image.width(),
         height: image.height(),
+        size: image.len() as u32,
         data: image.into_raw(),
     };
 
@@ -30,7 +31,9 @@ fn main() {
         }))
         .unwrap();
 
-    pipeline.render_image(&image, width, height, 2000).unwrap();
+    pipeline
+        .render_image(image.size, width, height, 2000)
+        .unwrap();
 
     pipeline.destroy();
     destroy_bcm_omx();

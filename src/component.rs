@@ -15,6 +15,7 @@ pub struct Image {
     pub data: Vec<u8>,
     pub width: u32,
     pub height: u32,
+    pub size: u32,
 }
 
 struct Component {
@@ -292,12 +293,8 @@ impl Pipeline {
     pub fn prepare_image(&mut self, image: &mut Image) -> Result<(), OMXError> {
         self.resize.set_state(State::Idle);
 
-        self.resize.set_image_size(
-            Direction::In,
-            image.width,
-            image.height,
-            Some(image.data.len() as u32),
-        )?;
+        self.resize
+            .set_image_size(Direction::In, image.width, image.height, Some(image.size))?;
         self.resize
             .send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, Direction::In)?;
 
@@ -307,7 +304,7 @@ impl Pipeline {
                 &mut self.buffer_header,
                 self.resize.in_port,
                 std::ptr::null_mut(),
-                image.data.len() as u32,
+                image.size,
                 image.data.as_mut_ptr(),
             ) != OMX_ERRORTYPE_OMX_ErrorNone
             {
@@ -329,13 +326,13 @@ impl Pipeline {
 
     pub fn render_image(
         &mut self,
-        image: &Image,
+        size: u32,
         width: u32,
         height: u32,
         timeout: i32,
     ) -> Result<(), OMXError> {
         unsafe {
-            (*self.buffer_header).nFilledLen = image.data.len() as u32;
+            (*self.buffer_header).nFilledLen = size;
             (*self.buffer_header).nFlags = OMX_BUFFERFLAG_EOS;
 
             if wOMX_EmptyThisBuffer(self.resize.handle, self.buffer_header)
