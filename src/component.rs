@@ -9,7 +9,13 @@ use std::mem::{size_of, zeroed};
 use std::os::raw::c_void;
 
 use crate::error::OMXError;
-use crate::image::Image;
+
+#[derive(Debug)]
+pub struct Image {
+    pub data: Vec<u8>,
+    pub width: u32,
+    pub height: u32,
+}
 
 struct Component {
     component: *mut COMPONENT_T,
