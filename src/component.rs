@@ -214,6 +214,7 @@ impl Component {
 pub struct Pipeline {
     client: *mut ILCLIENT_T,
     buffer_header: *mut OMX_BUFFERHEADERTYPE,
+    decode: Component,
     render: Component,
     resize: Component,
 }
@@ -226,6 +227,7 @@ impl Pipeline {
             Pipeline {
                 client: client,
                 buffer_header: zeroed(),
+                decode: Default::default(),
                 render: Default::default(),
                 resize: Default::default(),
             }
@@ -273,6 +275,23 @@ impl Pipeline {
         }
         self.resize.in_port = port.nStartPortNumber;
         self.resize.out_port = port.nStartPortNumber + 1;
+
+        self.decode.create(
+            self.client,
+            "image_decode".to_string(),
+            ILCLIENT_CREATE_FLAGS_T_ILCLIENT_DISABLE_ALL_PORTS
+                | ILCLIENT_CREATE_FLAGS_T_ILCLIENT_ENABLE_INPUT_BUFFERS
+                | ILCLIENT_CREATE_FLAGS_T_ILCLIENT_ENABLE_OUTPUT_BUFFERS,
+        )?;
+
+        self.decode
+            .get_parameter(OMX_INDEXTYPE_OMX_IndexParamImageInit, &mut port)?;
+
+        if port.nPorts != 2 {
+            return Err(OMXError::InvalidNumberOfPorts);
+        }
+        self.decode.in_port = port.nStartPortNumber;
+        self.decode.out_port = port.nStartPortNumber + 1;
 
         Ok(())
     }
