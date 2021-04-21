@@ -3,6 +3,7 @@ mod error;
 
 use component::*;
 use std::env;
+use std::fs::File;
 use std::path::Path;
 
 fn main() {
@@ -21,6 +22,10 @@ fn main() {
 
     let image = image::open(&Path::new(&file)).unwrap();
     let image = image::DynamicImage::to_rgba8(&image);
+
+    // pipeline.prepare_decoder().unwrap();
+    // let mut file = File::open(&file).unwrap();
+    // pipeline.decode_image(&mut file).unwrap();
 
     pipeline.prepare_image(&image).unwrap();
     pipeline
