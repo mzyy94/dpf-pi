@@ -4,7 +4,7 @@
 #![allow(dead_code)]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-use image::RgbaImage;
+use image::{ImageBuffer, Rgba, RgbaImage};
 use std::ffi::CString;
 use std::mem::{size_of, zeroed};
 use std::os::raw::c_void;
@@ -410,4 +410,19 @@ pub fn get_display_size() -> (u32, u32) {
         graphics_get_display_size(0, &mut width, &mut height);
         (width, height)
     }
+}
+
+pub fn align_image(img: RgbaImage) -> RgbaImage {
+    let xstride = (img.width() + 0b1111) & !0b1111;
+    if xstride == img.width() {
+        return img;
+    }
+
+    ImageBuffer::from_fn(xstride, img.height(), |x, y| {
+        if x < img.width() {
+            *img.get_pixel(x, y)
+        } else {
+            Rgba([0u8; 4])
+        }
+    })
 }

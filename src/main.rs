@@ -21,6 +21,7 @@ fn main() {
 
     let image = image::open(&Path::new(&file)).unwrap();
     let image = image::DynamicImage::to_rgba8(&image);
+    let image = align_image(image);
 
     pipeline.prepare_image(&image).unwrap();
     pipeline
