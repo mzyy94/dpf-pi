@@ -163,6 +163,10 @@ impl Component {
         Ok(())
     }
 
+    pub fn enable_port(&self, direction: Direction) -> Result<(), OMXError> {
+        self.send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, direction)
+    }
+
     pub fn set_image_size(
         &mut self,
         direction: Direction,
@@ -292,8 +296,7 @@ impl Pipeline {
             image.height(),
             Some(image.len() as u32),
         )?;
-        self.resize
-            .send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, Direction::In)?;
+        self.resize.enable_port(Direction::In)?;
 
         unsafe {
             if wOMX_UseBuffer(
@@ -368,10 +371,8 @@ impl Pipeline {
                 self.render.in_port,
             );
 
-            self.resize
-                .send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, Direction::Out)?;
-            self.render
-                .send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, Direction::In)?;
+            self.resize.enable_port(Direction::Out)?;
+            self.render.enable_port(Direction::In)?;
 
             ilclient_wait_for_event(
                 self.render.component,
