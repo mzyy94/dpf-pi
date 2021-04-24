@@ -4,6 +4,10 @@ mod error;
 use component::*;
 use std::env;
 use std::path::Path;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
+use std::thread;
+use std::time;
 
 fn main() {
     let file = if env::args().count() == 2 {
@@ -11,6 +15,13 @@ fn main() {
     } else {
         panic!("Usage: {} image", env::args().nth(0).unwrap())
     };
+
+    let running = Arc::new(AtomicBool::new(true));
+    let r = running.clone();
+    ctrlc::set_handler(move || {
+        r.store(false, Ordering::SeqCst);
+    })
+    .unwrap();
 
     init_bcm_omx();
 
@@ -37,8 +48,10 @@ fn main() {
         .render_image(image.len() as u32, width, height, 2000)
         .unwrap();
 
+    while running.load(Ordering::SeqCst) {
+        thread::sleep(time::Duration::from_millis(10));
+    }
+
     pipeline.destroy();
     destroy_bcm_omx();
-
-    println!("Hello, world!");
 }
