@@ -41,18 +41,8 @@ fn main() {
     let image = DisplayImage::new(image);
 
     pipeline.prepare_image(&image).unwrap();
-    let DisplayRect { x, y, w, h } = DisplayRect::new_with_mode(
-        ContentMode::Aspect(AspectMode::Fill),
-        (width, height),
-        image.size(),
-    );
     pipeline
-        .set_image_config(Some(OMX_DISPLAYRECTTYPE {
-            x_offset: x,
-            y_offset: y,
-            width: w,
-            height: h,
-        }))
+        .set_image_scale(ContentMode::Aspect(AspectMode::Fill), &image)
         .unwrap();
 
     pipeline.render_image(2000).unwrap();

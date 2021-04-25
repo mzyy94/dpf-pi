@@ -115,6 +115,21 @@ impl Pipeline {
         self.render.set_display_region(Direction::In, display_rect)
     }
 
+    pub fn set_image_scale(
+        &mut self,
+        content_mode: ContentMode,
+        image: &DisplayImage,
+    ) -> Result<(), OMXError> {
+        let DisplayRect { x, y, w, h } =
+            DisplayRect::new_with_mode(content_mode, self.viewport, image.size());
+        self.set_image_config(Some(OMX_DISPLAYRECTTYPE {
+            x_offset: x,
+            y_offset: y,
+            width: w,
+            height: h,
+        }))
+    }
+
     pub fn render_image(&mut self, timeout: i32) -> Result<(), OMXError> {
         omx::empty_this_buffer(self.resize.handle, self.buffer_header)?;
 
