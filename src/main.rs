@@ -1,8 +1,10 @@
 mod component;
 mod error;
+mod ilclient;
 mod picture;
 
 use component::*;
+use ilclient::*;
 use picture::align_image;
 
 use std::env;

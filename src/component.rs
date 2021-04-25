@@ -2,14 +2,14 @@
 #![allow(non_camel_case_types)]
 #![allow(non_snake_case)]
 #![allow(dead_code)]
-include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
 use image::RgbaImage;
-use std::ffi::CString;
 use std::mem::{size_of, zeroed};
 use std::os::raw::c_void;
 
 use crate::error::OMXError;
+use crate::ilclient;
+use crate::ilclient::*;
 
 struct Component {
     component: *mut COMPONENT_T,
@@ -21,7 +21,7 @@ struct Component {
 impl Default for Component {
     fn default() -> Self {
         Self {
-            component: &mut COMPONENT_T { _unused: [] },
+            component: &mut Default::default(),
             handle: 0 as *mut c_void,
             in_port: 0,
             out_port: 0,
@@ -62,18 +62,10 @@ impl Component {
         name: String,
         flags: ILCLIENT_CREATE_FLAGS_T,
     ) -> Result<(), OMXError> {
-        unsafe {
-            let name = CString::new(name).unwrap();
+        ilclient::create_component(client, &mut self.component, name, flags)?;
 
-            if ilclient_create_component(client, &mut self.component, name.into_raw(), flags)
-                != OMX_ERRORTYPE_OMX_ErrorNone
-            {
-                return Err(OMXError::CreateComponentFailed);
-            }
-
-            self.handle = ilclient_get_handle(self.component);
-            Ok(())
-        }
+        self.handle = ilclient::get_handle(self.component);
+        Ok(())
     }
 
     pub fn get_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
@@ -209,9 +201,7 @@ impl Component {
             State::Pause => OMX_STATETYPE_OMX_StatePause,
             State::WaitForResources => OMX_STATETYPE_OMX_StateWaitForResources,
         };
-        unsafe {
-            ilclient_change_component_state(self.component, state);
-        }
+        ilclient::change_component_state(self.component, state).ok();
     }
 }
 
@@ -224,9 +214,9 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new() -> Pipeline {
-        unsafe {
-            let client = ilclient_init();
+        let client = ilclient::init();
 
+        unsafe {
             Pipeline {
                 client: client,
                 buffer_header: zeroed(),
@@ -282,9 +272,7 @@ impl Pipeline {
     }
 
     pub fn destroy(&mut self) {
-        unsafe {
-            ilclient_destroy(self.client);
-        }
+        ilclient::destroy(self.client)
     }
 
     pub fn prepare_image(&mut self, image: &RgbaImage) -> Result<(), OMXError> {
@@ -341,20 +329,16 @@ impl Pipeline {
                 return Err(OMXError::EmptyBufferFailed);
             }
 
-            if ilclient_wait_for_event(
+            ilclient::wait_for_event(
                 self.resize.component,
                 OMX_EVENTTYPE_OMX_EventPortSettingsChanged,
                 self.resize.out_port,
                 0,
                 0,
                 1,
-                (ILEVENT_MASK_T_ILCLIENT_EVENT_ERROR | ILEVENT_MASK_T_ILCLIENT_PARAMETER_CHANGED)
-                    as i32,
+                ILEVENT_MASK_T_ILCLIENT_EVENT_ERROR | ILEVENT_MASK_T_ILCLIENT_PARAMETER_CHANGED,
                 timeout,
-            ) != 0
-            {
-                return Err(OMXError::EventTimeout);
-            }
+            )?;
 
             self.render.set_state(State::Idle);
             self.render.set_state(State::Executing);
@@ -374,16 +358,17 @@ impl Pipeline {
             self.resize.enable_port(Direction::Out)?;
             self.render.enable_port(Direction::In)?;
 
-            ilclient_wait_for_event(
+            ilclient::wait_for_event(
                 self.render.component,
                 OMX_EVENTTYPE_OMX_EventBufferFlag,
                 self.render.in_port,
                 0,
                 OMX_BUFFERFLAG_EOS,
                 0,
-                ILEVENT_MASK_T_ILCLIENT_BUFFER_FLAG_EOS as i32,
+                ILEVENT_MASK_T_ILCLIENT_BUFFER_FLAG_EOS,
                 timeout,
-            );
+            )
+            .ok();
 
             Ok(())
         }
