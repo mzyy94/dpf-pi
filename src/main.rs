@@ -4,7 +4,7 @@ mod picture;
 mod pipeline;
 mod vc;
 
-use picture::align_image;
+use picture::*;
 use pipeline::*;
 use vc::*;
 
@@ -41,12 +41,17 @@ fn main() {
     let image = align_image(image);
 
     pipeline.prepare_image(&image).unwrap();
+    let DisplayRect { x, y, w, h } = DisplayRect::new_with_mode(
+        ContentMode::ScaleToFill,
+        (width, height),
+        (image.width(), image.height()),
+    );
     pipeline
         .set_image_config(Some(OMX_DISPLAYRECTTYPE {
-            x_offset: (width - image.width()) as i16 / 2,
-            y_offset: (height - image.height()) as i16 / 2,
-            width: image.width() as i16,
-            height: image.height() as i16,
+            x_offset: x,
+            y_offset: y,
+            width: w,
+            height: h,
         }))
         .unwrap();
 
