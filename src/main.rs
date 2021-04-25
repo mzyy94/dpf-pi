@@ -1,7 +1,10 @@
 mod component;
 mod error;
+mod picture;
 
 use component::*;
+use picture::align_image;
+
 use std::env;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
