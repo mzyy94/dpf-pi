@@ -9,4 +9,5 @@ pub enum OMXError {
     UseBufferFailed,
     EmptyBufferFailed,
     EventTimeout,
+    SetupTunnelFailed,
 }

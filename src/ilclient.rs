@@ -185,4 +185,56 @@ pub mod omx {
             Ok(())
         }
     }
+
+    pub fn use_buffer(
+        hComponent: OMX_HANDLETYPE,
+        ppBufferHdr: *mut *mut OMX_BUFFERHEADERTYPE,
+        nPortIndex: OMX_U32,
+        pAppPrivate: OMX_PTR,
+        nSizeBytes: OMX_U32,
+        pBuffer: *const OMX_U8,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            if wOMX_UseBuffer(
+                hComponent,
+                ppBufferHdr,
+                nPortIndex,
+                pAppPrivate,
+                nSizeBytes,
+                pBuffer,
+            ) != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::UseBufferFailed);
+            }
+            Ok(())
+        }
+    }
+
+    pub fn empty_this_buffer(
+        hComponent: OMX_HANDLETYPE,
+        pBuffer: *mut OMX_BUFFERHEADERTYPE,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            if wOMX_EmptyThisBuffer(hComponent, pBuffer) != OMX_ERRORTYPE_OMX_ErrorNone {
+                return Err(OMXError::EmptyBufferFailed);
+            }
+            Ok(())
+        }
+    }
+
+    pub fn setup_tunnel(
+        hOutput: OMX_HANDLETYPE,
+        nPortOutput: OMX_U32,
+        hInput: OMX_HANDLETYPE,
+        nPortInput: OMX_U32,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            if OMX_SetupTunnel(hOutput, nPortOutput, hInput, nPortInput)
+                != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::SetupTunnelFailed);
+            }
+            Ok(())
+        }
+    }
 }
