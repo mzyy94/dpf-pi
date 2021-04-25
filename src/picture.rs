@@ -1,5 +1,6 @@
 use image::{ImageBuffer, Rgba, RgbaImage};
 
+#[derive(Debug)]
 pub struct DisplayImage {
     image: RgbaImage,
     width: u32,
@@ -55,17 +56,20 @@ impl DisplayImage {
     }
 }
 
+#[derive(Debug)]
 pub enum AspectMode {
     Fill,
     Fit,
 }
 
+#[derive(Debug)]
 pub enum ContentMode {
     None,
     Aspect(AspectMode),
     ScaleToFill,
 }
 
+#[derive(Debug)]
 pub struct DisplayRect {
     pub x: i16,
     pub y: i16,
