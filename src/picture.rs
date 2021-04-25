@@ -55,9 +55,14 @@ impl DisplayImage {
     }
 }
 
+pub enum AspectMode {
+    Fill,
+    Fit,
+}
+
 pub enum ContentMode {
     None,
-    AspectFit,
+    Aspect(AspectMode),
     ScaleToFill,
 }
 
@@ -89,9 +94,13 @@ impl DisplayRect {
                 w: vw,
                 h: vh,
             },
-            ContentMode::AspectFit => {
+            ContentMode::Aspect(mode) => {
                 let w = (vw as f32 * ratio) as i16;
                 let h = (vh as f32 / ratio) as i16;
+                let ratio = match mode {
+                    AspectMode::Fit => ratio,
+                    AspectMode::Fill => 1f32 / ratio,
+                };
                 if ratio == 1f32 {
                     Self {
                         x: 0i16,
