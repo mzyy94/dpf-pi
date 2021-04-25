@@ -11,7 +11,7 @@ use vc::*;
 use std::env;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time;
 
@@ -33,14 +33,16 @@ fn main() {
 
     let (width, height) = omx::get_display_size(0);
 
-    let mut pipeline = Pipeline::new();
-    pipeline.init(width, height).unwrap();
+    let pipeline = Arc::new(Mutex::new(Pipeline::new()));
+    pipeline.lock().unwrap().init(width, height).unwrap();
 
     let image = image::open(&Path::new(&file)).unwrap();
     let image = image::DynamicImage::to_rgba8(&image);
     let image = DisplayImage::new(image);
 
     pipeline
+        .lock()
+        .unwrap()
         .render_image(&image, ContentMode::Aspect(AspectMode::Fill), 2000)
         .unwrap();
 
@@ -48,6 +50,6 @@ fn main() {
         thread::sleep(time::Duration::from_millis(10));
     }
 
-    pipeline.destroy();
+    pipeline.lock().unwrap().destroy();
     omx::deinit();
 }
