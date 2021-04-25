@@ -7,7 +7,7 @@ use std::mem::size_of;
 use std::os::raw::c_void;
 
 use crate::error::OMXError;
-use crate::ilclient::*;
+use crate::vc::*;
 
 pub struct Component {
     pub component: *mut COMPONENT_T,

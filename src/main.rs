@@ -1,12 +1,12 @@
 mod component;
 mod error;
-mod ilclient;
 mod picture;
 mod pipeline;
+mod vc;
 
-use ilclient::*;
 use picture::align_image;
 use pipeline::*;
+use vc::*;
 
 use std::env;
 use std::path::Path;
