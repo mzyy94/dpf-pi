@@ -14,6 +14,24 @@ impl Default for COMPONENT_T {
     }
 }
 
+impl Default for OMX_PARAM_PORTDEFINITIONTYPE {
+    fn default() -> Self {
+        unsafe { std::mem::zeroed() }
+    }
+}
+
+impl Default for OMX_CONFIG_DISPLAYREGIONTYPE {
+    fn default() -> Self {
+        unsafe { std::mem::zeroed() }
+    }
+}
+
+impl Default for OMX_DISPLAYRECTTYPE {
+    fn default() -> Self {
+        unsafe { std::mem::zeroed() }
+    }
+}
+
 pub fn init() -> *mut ILCLIENT_T {
     unsafe { ilclient_init() }
 }
@@ -106,6 +124,65 @@ pub mod omx {
             let mut height: u32 = 0;
             graphics_get_display_size(display_number, &mut width, &mut height);
             (width, height)
+        }
+    }
+
+    pub fn send_command(
+        hComponent: OMX_HANDLETYPE,
+        Cmd: OMX_COMMANDTYPE,
+        nParam1: OMX_U32,
+        pCmdData: *mut ::std::os::raw::c_void,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            if wOMX_SendCommand(hComponent, Cmd, nParam1, pCmdData) != OMX_ERRORTYPE_OMX_ErrorNone {
+                return Err(OMXError::SendCommandFailed);
+            }
+            Ok(())
+        }
+    }
+
+    pub fn get_parameter(
+        hComponent: OMX_HANDLETYPE,
+        nParamIndex: OMX_INDEXTYPE,
+        pComponentParameterStructure: *mut ::std::os::raw::c_void,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            if wOMX_GetParameter(hComponent, nParamIndex, pComponentParameterStructure)
+                != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::UnableToGetParameter);
+            }
+            Ok(())
+        }
+    }
+
+    pub fn set_parameter(
+        hComponent: OMX_HANDLETYPE,
+        nParamIndex: OMX_INDEXTYPE,
+        pComponentParameterStructure: *mut ::std::os::raw::c_void,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            if wOMX_SetParameter(hComponent, nParamIndex, pComponentParameterStructure)
+                != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::UnableToSetParameter);
+            }
+            Ok(())
+        }
+    }
+
+    pub fn set_config(
+        hComponent: OMX_HANDLETYPE,
+        nConfigIndex: OMX_INDEXTYPE,
+        pComponentConfigStructure: *mut ::std::os::raw::c_void,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            if wOMX_SetConfig(hComponent, nConfigIndex, pComponentConfigStructure)
+                != OMX_ERRORTYPE_OMX_ErrorNone
+            {
+                return Err(OMXError::UnableToSetConfig);
+            }
+            Ok(())
         }
     }
 }

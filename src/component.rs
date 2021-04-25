@@ -3,7 +3,7 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
-use std::mem::{size_of, zeroed};
+use std::mem::size_of;
 use std::os::raw::c_void;
 
 use crate::error::OMXError;
@@ -69,32 +69,17 @@ impl Component {
 
     pub fn get_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
         let param = param as *mut _ as *mut c_void;
-        unsafe {
-            if wOMX_GetParameter(self.handle, index, param) != OMX_ERRORTYPE_OMX_ErrorNone {
-                return Err(OMXError::UnableToGetParameter);
-            }
-            Ok(())
-        }
+        omx::get_parameter(self.handle, index, param)
     }
 
     pub fn set_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
         let param = param as *mut _ as *mut c_void;
-        unsafe {
-            if wOMX_SetParameter(self.handle, index, param) != OMX_ERRORTYPE_OMX_ErrorNone {
-                return Err(OMXError::UnableToSetParameter);
-            }
-            Ok(())
-        }
+        omx::set_parameter(self.handle, index, param)
     }
 
     pub fn set_config<T>(&self, index: OMX_INDEXTYPE, config: &mut T) -> Result<(), OMXError> {
         let config = config as *mut _ as *mut c_void;
-        unsafe {
-            if wOMX_SetConfig(self.handle, index, config) != OMX_ERRORTYPE_OMX_ErrorNone {
-                return Err(OMXError::UnableToSetConfig);
-            }
-            Ok(())
-        }
+        omx::set_config(self.handle, index, config)
     }
 
     pub fn set_display_region(
@@ -106,35 +91,34 @@ impl Component {
             Direction::In => self.in_port,
             Direction::Out => self.out_port,
         };
-        unsafe {
-            let mut disp = OMX_CONFIG_DISPLAYREGIONTYPE {
-                nSize: size_of::<OMX_CONFIG_DISPLAYREGIONTYPE>() as u32,
-                nVersion: OMX_VERSIONTYPE {
-                    nVersion: OMX_VERSION,
-                },
-                nPortIndex: port,
-                set: OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_NUM
-                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_MODE
-                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_NOASPECT
-                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_FULLSCREEN
-                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_DEST_RECT
-                    | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_TRANSFORM,
-                num: 0,
-                mode: OMX_DISPLAYMODETYPE_OMX_DISPLAY_MODE_LETTERBOX,
-                noaspect: OMX_BOOL_OMX_TRUE,
-                fullscreen: match display_rect {
-                    None => OMX_BOOL_OMX_TRUE,
-                    _ => OMX_BOOL_OMX_FALSE,
-                },
-                dest_rect: match display_rect {
-                    Some(rect) => rect,
-                    None => zeroed(),
-                },
-                transform: OMX_DISPLAYTRANSFORMTYPE_OMX_DISPLAY_ROT0,
-                ..zeroed()
-            };
-            self.set_config(OMX_INDEXTYPE_OMX_IndexConfigDisplayRegion, &mut disp)
-        }
+
+        let mut disp = OMX_CONFIG_DISPLAYREGIONTYPE {
+            nSize: size_of::<OMX_CONFIG_DISPLAYREGIONTYPE>() as u32,
+            nVersion: OMX_VERSIONTYPE {
+                nVersion: OMX_VERSION,
+            },
+            nPortIndex: port,
+            set: OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_NUM
+                | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_MODE
+                | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_NOASPECT
+                | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_FULLSCREEN
+                | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_DEST_RECT
+                | OMX_DISPLAYSETTYPE_OMX_DISPLAY_SET_TRANSFORM,
+            num: 0,
+            mode: OMX_DISPLAYMODETYPE_OMX_DISPLAY_MODE_LETTERBOX,
+            noaspect: OMX_BOOL_OMX_TRUE,
+            fullscreen: match display_rect {
+                None => OMX_BOOL_OMX_TRUE,
+                _ => OMX_BOOL_OMX_FALSE,
+            },
+            dest_rect: match display_rect {
+                Some(rect) => rect,
+                None => Default::default(),
+            },
+            transform: OMX_DISPLAYTRANSFORMTYPE_OMX_DISPLAY_ROT0,
+            ..Default::default()
+        };
+        self.set_config(OMX_INDEXTYPE_OMX_IndexConfigDisplayRegion, &mut disp)
     }
 
     pub fn send_command(&self, cmd: OMX_COMMANDTYPE, direction: Direction) -> Result<(), OMXError> {
@@ -142,16 +126,7 @@ impl Component {
             Direction::In => self.in_port,
             Direction::Out => self.out_port,
         };
-
-        unsafe {
-            if wOMX_SendCommand(self.handle, cmd, port, std::ptr::null_mut())
-                != OMX_ERRORTYPE_OMX_ErrorNone
-            {
-                return Err(OMXError::SendCommandFailed);
-            }
-        }
-
-        Ok(())
+        omx::send_command(self.handle, cmd, port, std::ptr::null_mut())
     }
 
     pub fn enable_port(&self, direction: Direction) -> Result<(), OMXError> {
@@ -170,25 +145,25 @@ impl Component {
             Direction::Out => self.out_port,
         };
 
+        let mut port = OMX_PARAM_PORTDEFINITIONTYPE {
+            nSize: size_of::<OMX_PARAM_PORTDEFINITIONTYPE>() as u32,
+            nVersion: OMX_VERSIONTYPE {
+                nVersion: OMX_VERSION,
+            },
+            nPortIndex: port,
+            ..Default::default()
+        };
+
+        self.get_parameter(OMX_INDEXTYPE_OMX_IndexParamPortDefinition, &mut port)?;
+
         unsafe {
-            let mut port = OMX_PARAM_PORTDEFINITIONTYPE {
-                nSize: size_of::<OMX_PARAM_PORTDEFINITIONTYPE>() as u32,
-                nVersion: OMX_VERSIONTYPE {
-                    nVersion: OMX_VERSION,
-                },
-                nPortIndex: port,
-                ..zeroed()
-            };
-
-            self.get_parameter(OMX_INDEXTYPE_OMX_IndexParamPortDefinition, &mut port)?;
-
             set_image_defs(&mut port.format.image, width, height);
-            if let Some(size) = buffer_size {
-                port.nBufferSize = size;
-            }
-
-            self.set_parameter(OMX_INDEXTYPE_OMX_IndexParamPortDefinition, &mut port)
         }
+        if let Some(size) = buffer_size {
+            port.nBufferSize = size;
+        }
+
+        self.set_parameter(OMX_INDEXTYPE_OMX_IndexParamPortDefinition, &mut port)
     }
 
     pub fn set_state(&mut self, state: State) {
