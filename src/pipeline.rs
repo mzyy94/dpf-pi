@@ -8,7 +8,6 @@ use std::mem::{size_of, zeroed};
 
 use crate::component::*;
 use crate::error::OMXError;
-use crate::ilclient;
 use crate::ilclient::*;
 
 pub struct Pipeline {
