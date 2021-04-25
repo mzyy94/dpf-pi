@@ -374,26 +374,3 @@ impl Pipeline {
         }
     }
 }
-
-pub fn init_bcm_omx() {
-    unsafe {
-        bcm_host_init();
-        OMX_Init();
-    }
-}
-
-pub fn destroy_bcm_omx() {
-    unsafe {
-        OMX_Deinit();
-        bcm_host_deinit();
-    }
-}
-
-pub fn get_display_size() -> (u32, u32) {
-    unsafe {
-        let mut width: u32 = 0;
-        let mut height: u32 = 0;
-        graphics_get_display_size(0, &mut width, &mut height);
-        (width, height)
-    }
-}

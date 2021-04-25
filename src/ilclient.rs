@@ -82,3 +82,30 @@ pub fn change_component_state(
         Ok(())
     }
 }
+
+pub mod omx {
+    use super::*;
+
+    pub fn init() {
+        unsafe {
+            bcm_host_init();
+            OMX_Init();
+        }
+    }
+
+    pub fn deinit() {
+        unsafe {
+            OMX_Deinit();
+            bcm_host_deinit();
+        }
+    }
+
+    pub fn get_display_size(display_number: u16) -> (u32, u32) {
+        unsafe {
+            let mut width: u32 = 0;
+            let mut height: u32 = 0;
+            graphics_get_display_size(display_number, &mut width, &mut height);
+            (width, height)
+        }
+    }
+}

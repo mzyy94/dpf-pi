@@ -28,12 +28,12 @@ fn main() {
     })
     .unwrap();
 
-    init_bcm_omx();
+    omx::init();
 
     let mut pipeline = Pipeline::new();
     pipeline.init().unwrap();
 
-    let (width, height) = get_display_size();
+    let (width, height) = omx::get_display_size(0);
 
     let image = image::open(&Path::new(&file)).unwrap();
     let image = image::DynamicImage::to_rgba8(&image);
@@ -58,5 +58,5 @@ fn main() {
     }
 
     pipeline.destroy();
-    destroy_bcm_omx();
+    omx::deinit();
 }
