@@ -31,10 +31,10 @@ fn main() {
 
     omx::init();
 
-    let mut pipeline = Pipeline::new();
-    pipeline.init().unwrap();
-
     let (width, height) = omx::get_display_size(0);
+
+    let mut pipeline = Pipeline::new();
+    pipeline.init(width, height).unwrap();
 
     let image = image::open(&Path::new(&file)).unwrap();
     let image = image::DynamicImage::to_rgba8(&image);
@@ -50,9 +50,7 @@ fn main() {
         }))
         .unwrap();
 
-    pipeline
-        .render_image(image.len() as u32, width, height, 2000)
-        .unwrap();
+    pipeline.render_image(2000).unwrap();
 
     while running.load(Ordering::SeqCst) {
         thread::sleep(time::Duration::from_millis(10));
