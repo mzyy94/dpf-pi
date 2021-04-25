@@ -1,18 +1,58 @@
 use image::{ImageBuffer, Rgba, RgbaImage};
 
-pub fn align_image(img: RgbaImage) -> RgbaImage {
-    let xstride = (img.width() + 0b1111) & !0b1111;
-    if xstride == img.width() {
-        return img;
+pub struct DisplayImage {
+    image: RgbaImage,
+    width: u32,
+    height: u32,
+}
+
+impl DisplayImage {
+    pub fn new(img: RgbaImage) -> Self {
+        let width = img.width();
+        let height = img.height();
+        let xstride = (width + 0b1111) & !0b1111;
+        if xstride == width {
+            return Self {
+                width,
+                height,
+                image: img,
+            };
+        }
+
+        let image = ImageBuffer::from_fn(xstride, height, |x, y| {
+            if x < width {
+                *img.get_pixel(x, y)
+            } else {
+                Rgba([0u8; 4])
+            }
+        });
+
+        Self {
+            width,
+            height,
+            image,
+        }
     }
 
-    ImageBuffer::from_fn(xstride, img.height(), |x, y| {
-        if x < img.width() {
-            *img.get_pixel(x, y)
-        } else {
-            Rgba([0u8; 4])
-        }
-    })
+    pub fn width(&self) -> u32 {
+        self.width
+    }
+
+    pub fn height(&self) -> u32 {
+        self.height
+    }
+
+    pub fn size(&self) -> (u32, u32) {
+        (self.width, self.height)
+    }
+
+    pub fn len(&self) -> u32 {
+        self.image.len() as u32
+    }
+
+    pub fn as_raw(&self) -> &[u8] {
+        self.image.as_raw()
+    }
 }
 
 pub enum ContentMode {

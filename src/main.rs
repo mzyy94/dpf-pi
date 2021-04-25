@@ -38,14 +38,11 @@ fn main() {
 
     let image = image::open(&Path::new(&file)).unwrap();
     let image = image::DynamicImage::to_rgba8(&image);
-    let image = align_image(image);
+    let image = DisplayImage::new(image);
 
     pipeline.prepare_image(&image).unwrap();
-    let DisplayRect { x, y, w, h } = DisplayRect::new_with_mode(
-        ContentMode::ScaleToFill,
-        (width, height),
-        (image.width(), image.height()),
-    );
+    let DisplayRect { x, y, w, h } =
+        DisplayRect::new_with_mode(ContentMode::ScaleToFill, (width, height), image.size());
     pipeline
         .set_image_config(Some(OMX_DISPLAYRECTTYPE {
             x_offset: x,

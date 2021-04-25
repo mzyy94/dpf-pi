@@ -3,11 +3,11 @@
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
-use image::RgbaImage;
 use std::mem::{size_of, zeroed};
 
 use crate::component::*;
 use crate::error::OMXError;
+use crate::picture::*;
 use crate::vc::*;
 
 pub struct Pipeline {
@@ -84,14 +84,14 @@ impl Pipeline {
         ilclient::destroy(self.client)
     }
 
-    pub fn prepare_image(&mut self, image: &RgbaImage) -> Result<(), OMXError> {
+    pub fn prepare_image(&mut self, image: &DisplayImage) -> Result<(), OMXError> {
         self.resize.set_state(State::Idle);
 
         self.resize.set_image_size(
             Direction::In,
             image.width(),
             image.height(),
-            Some(image.len() as u32),
+            Some(image.len()),
         )?;
         self.resize.enable_port(Direction::In)?;
 
@@ -100,14 +100,14 @@ impl Pipeline {
             &mut self.buffer_header,
             self.resize.in_port,
             std::ptr::null_mut(),
-            image.len() as u32,
+            image.len(),
             image.as_raw().as_ptr(),
         )?;
 
         self.resize.set_state(State::Executing);
 
         unsafe {
-            (*self.buffer_header).nFilledLen = image.len() as u32;
+            (*self.buffer_header).nFilledLen = image.len();
             (*self.buffer_header).nFlags = OMX_BUFFERFLAG_EOS;
         }
         Ok(())
