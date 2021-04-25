@@ -40,12 +40,9 @@ fn main() {
     let image = image::DynamicImage::to_rgba8(&image);
     let image = DisplayImage::new(image);
 
-    pipeline.prepare_image(&image).unwrap();
     pipeline
-        .set_image_scale(ContentMode::Aspect(AspectMode::Fill), &image)
+        .render_image(&image, ContentMode::Aspect(AspectMode::Fill), 2000)
         .unwrap();
-
-    pipeline.render_image(2000).unwrap();
 
     while running.load(Ordering::SeqCst) {
         thread::sleep(time::Duration::from_millis(10));

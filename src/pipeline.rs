@@ -130,7 +130,14 @@ impl Pipeline {
         }))
     }
 
-    pub fn render_image(&mut self, timeout: i32) -> Result<(), OMXError> {
+    pub fn render_image(
+        &mut self,
+        image: &DisplayImage,
+        content_mode: ContentMode,
+        timeout: i32,
+    ) -> Result<(), OMXError> {
+        self.prepare_image(image)?;
+        self.set_image_scale(content_mode, image)?;
         omx::empty_this_buffer(self.resize.handle, self.buffer_header)?;
 
         ilclient::wait_for_event(
