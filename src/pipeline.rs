@@ -1,4 +1,5 @@
-use std::mem::{size_of, zeroed};
+use std::mem::size_of;
+use std::sync::Arc;
 
 use crate::component::*;
 use crate::error::OMXError;
@@ -6,8 +7,8 @@ use crate::picture::*;
 use crate::vc::*;
 
 pub struct Pipeline {
-    client: *mut ILCLIENT_T,
-    buffer_header: *mut OMX_BUFFERHEADERTYPE,
+    client: Arc<ILCLIENT_T>,
+    buffer_header: Arc<OMX_BUFFERHEADERTYPE>,
     render: Component,
     resize: Component,
     viewport: (u32, u32),
@@ -19,8 +20,8 @@ impl Pipeline {
 
         unsafe {
             Pipeline {
-                client: client,
-                buffer_header: zeroed(),
+                client: Arc::from_raw(client),
+                buffer_header: Arc::new(Default::default()),
                 render: Default::default(),
                 resize: Default::default(),
                 viewport: (0, 0),
@@ -41,7 +42,7 @@ impl Pipeline {
         };
 
         self.render.create(
-            self.client,
+            Arc::into_raw(self.client.clone()) as *mut _,
             "video_render".to_string(),
             ILCLIENT_CREATE_FLAGS_T_ILCLIENT_DISABLE_ALL_PORTS
                 | ILCLIENT_CREATE_FLAGS_T_ILCLIENT_ENABLE_INPUT_BUFFERS,
@@ -56,7 +57,7 @@ impl Pipeline {
         self.render.in_port = port.nStartPortNumber;
 
         self.resize.create(
-            self.client,
+            Arc::into_raw(self.client.clone()) as *mut _,
             "resize".to_string(),
             ILCLIENT_CREATE_FLAGS_T_ILCLIENT_DISABLE_ALL_PORTS
                 | ILCLIENT_CREATE_FLAGS_T_ILCLIENT_ENABLE_INPUT_BUFFERS
@@ -76,7 +77,7 @@ impl Pipeline {
     }
 
     pub fn destroy(&mut self) {
-        ilclient::destroy(self.client)
+        ilclient::destroy(Arc::into_raw(self.client.clone()) as *mut _)
     }
 
     pub fn prepare_image(&mut self, image: &DisplayImage) -> Result<(), OMXError> {
@@ -90,9 +91,11 @@ impl Pipeline {
         )?;
         self.resize.enable_port(Direction::In)?;
 
+        let mut buffer_header: *mut OMX_BUFFERHEADERTYPE = &mut Default::default();
+
         omx::use_buffer(
             self.resize.handle,
-            &mut self.buffer_header,
+            &mut buffer_header,
             self.resize.in_port,
             std::ptr::null_mut(),
             image.len(),
@@ -102,8 +105,9 @@ impl Pipeline {
         self.resize.set_state(State::Executing);
 
         unsafe {
-            (*self.buffer_header).nFilledLen = image.len();
-            (*self.buffer_header).nFlags = OMX_BUFFERFLAG_EOS;
+            (*buffer_header).nFilledLen = image.len();
+            (*buffer_header).nFlags = OMX_BUFFERFLAG_EOS;
+            self.buffer_header = Arc::from_raw(buffer_header);
         }
         Ok(())
     }
@@ -138,10 +142,13 @@ impl Pipeline {
     ) -> Result<(), OMXError> {
         self.prepare_image(image)?;
         self.set_image_scale(content_mode, image)?;
-        omx::empty_this_buffer(self.resize.handle, self.buffer_header)?;
+        omx::empty_this_buffer(
+            self.resize.handle,
+            Arc::into_raw(self.buffer_header.clone()) as *mut _,
+        )?;
 
         ilclient::wait_for_event(
-            self.resize.component,
+            Arc::into_raw(self.resize.component.clone()) as *mut _,
             OMX_EVENTTYPE_OMX_EventPortSettingsChanged,
             self.resize.out_port,
             0,
@@ -172,7 +179,7 @@ impl Pipeline {
         self.render.enable_port(Direction::In)?;
 
         ilclient::wait_for_event(
-            self.render.component,
+            Arc::into_raw(self.render.component.clone()) as *mut _,
             OMX_EVENTTYPE_OMX_EventBufferFlag,
             self.render.in_port,
             0,

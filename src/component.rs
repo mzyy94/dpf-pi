@@ -1,11 +1,12 @@
 use std::mem::size_of;
 use std::os::raw::c_void;
+use std::sync::Arc;
 
 use crate::error::OMXError;
 use crate::vc::*;
 
 pub struct Component {
-    pub component: *mut COMPONENT_T,
+    pub component: Arc<COMPONENT_T>,
     pub handle: OMX_HANDLETYPE,
     pub in_port: u32,
     pub out_port: u32,
@@ -14,7 +15,7 @@ pub struct Component {
 impl Default for Component {
     fn default() -> Self {
         Self {
-            component: &mut Default::default(),
+            component: Arc::new(Default::default()),
             handle: 0 as *mut c_void,
             in_port: 0,
             out_port: 0,
@@ -55,9 +56,12 @@ impl Component {
         name: String,
         flags: ILCLIENT_CREATE_FLAGS_T,
     ) -> Result<(), OMXError> {
-        ilclient::create_component(client, &mut self.component, name, flags)?;
+        let mut component: *mut COMPONENT_T = &mut Default::default();
 
-        self.handle = ilclient::get_handle(self.component);
+        ilclient::create_component(client, &mut component, name, flags)?;
+
+        self.handle = ilclient::get_handle(component);
+        self.component = unsafe { Arc::from_raw(component) };
         Ok(())
     }
 
@@ -169,6 +173,7 @@ impl Component {
             State::Pause => OMX_STATETYPE_OMX_StatePause,
             State::WaitForResources => OMX_STATETYPE_OMX_StateWaitForResources,
         };
-        ilclient::change_component_state(self.component, state).ok();
+        ilclient::change_component_state(Arc::into_raw(self.component.clone()) as *mut _, state)
+            .ok();
     }
 }
