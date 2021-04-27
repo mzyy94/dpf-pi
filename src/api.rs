@@ -37,13 +37,12 @@ pub async fn handler(
                 ContentMode::Aspect(AspectMode::Fit)
             };
 
-            pipeline.lock().unwrap().deinit().unwrap();
-            pipeline.lock().unwrap().init().unwrap();
-            pipeline
-                .lock()
-                .unwrap()
-                .render_image(&image, content_mode, 2000)
-                .unwrap();
+            {
+                let mut pipeline = pipeline.lock().unwrap();
+                pipeline.deinit().unwrap();
+                pipeline.init().unwrap();
+                pipeline.render_image(&image, content_mode, 2000).unwrap();
+            }
 
             Ok(Response::new(Body::from(text)))
         }
