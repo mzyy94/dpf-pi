@@ -4,7 +4,7 @@
 #![allow(dead_code)]
 include!(concat!(env!("OUT_DIR"), "/bindings.rs"));
 
-use crate::error::OMXError;
+use crate::error::{Operation, PipelineError};
 
 use std::ffi::CString;
 
@@ -54,15 +54,16 @@ pub mod ilclient {
         comp: *mut *mut COMPONENT_T,
         name: String,
         flags: ILCLIENT_CREATE_FLAGS_T,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         let name = CString::new(name).unwrap();
         unsafe {
-            if ilclient_create_component(handle, comp, name.into_raw(), flags)
-                != OMX_ERRORTYPE_OMX_ErrorNone
-            {
-                return Err(OMXError::CreateComponentFailed);
+            match ilclient_create_component(handle, comp, name.into_raw(), flags) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::ILClientError(
+                    Operation::CreateComponentFailed,
+                    state,
+                )),
             }
-            Ok(())
         }
     }
 
@@ -79,9 +80,9 @@ pub mod ilclient {
         ignore2: ::std::os::raw::c_int,
         event_flag: u32,
         timeout: ::std::os::raw::c_int,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if ilclient_wait_for_event(
+            match ilclient_wait_for_event(
                 comp,
                 event,
                 nData1,
@@ -90,23 +91,22 @@ pub mod ilclient {
                 ignore2,
                 event_flag as i32,
                 timeout,
-            ) != 0
-            {
-                return Err(OMXError::EventTimeout);
+            ) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::ILClientError(Operation::EventTimeout, state)),
             }
-            Ok(())
         }
     }
 
     pub fn change_component_state(
         comp: *mut COMPONENT_T,
         state: OMX_STATETYPE,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if ilclient_change_component_state(comp, state) != 0 {
-                return Err(OMXError::EventTimeout);
+            match ilclient_change_component_state(comp, state) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::ILClientError(Operation::EventTimeout, state)),
             }
-            Ok(())
         }
     }
 
@@ -146,12 +146,12 @@ pub mod omx {
         Cmd: OMX_COMMANDTYPE,
         nParam1: OMX_U32,
         pCmdData: *mut ::std::os::raw::c_void,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if wOMX_SendCommand(hComponent, Cmd, nParam1, pCmdData) != OMX_ERRORTYPE_OMX_ErrorNone {
-                return Err(OMXError::SendCommandFailed);
+            match wOMX_SendCommand(hComponent, Cmd, nParam1, pCmdData) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::OMXError(Operation::SendCommandFailed, state)),
             }
-            Ok(())
         }
     }
 
@@ -159,14 +159,15 @@ pub mod omx {
         hComponent: OMX_HANDLETYPE,
         nParamIndex: OMX_INDEXTYPE,
         pComponentParameterStructure: *mut ::std::os::raw::c_void,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if wOMX_GetParameter(hComponent, nParamIndex, pComponentParameterStructure)
-                != OMX_ERRORTYPE_OMX_ErrorNone
-            {
-                return Err(OMXError::UnableToGetParameter);
+            match wOMX_GetParameter(hComponent, nParamIndex, pComponentParameterStructure) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::OMXError(
+                    Operation::UnableToGetParameter,
+                    state,
+                )),
             }
-            Ok(())
         }
     }
 
@@ -174,14 +175,15 @@ pub mod omx {
         hComponent: OMX_HANDLETYPE,
         nParamIndex: OMX_INDEXTYPE,
         pComponentParameterStructure: *mut ::std::os::raw::c_void,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if wOMX_SetParameter(hComponent, nParamIndex, pComponentParameterStructure)
-                != OMX_ERRORTYPE_OMX_ErrorNone
-            {
-                return Err(OMXError::UnableToSetParameter);
+            match wOMX_SetParameter(hComponent, nParamIndex, pComponentParameterStructure) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::OMXError(
+                    Operation::UnableToSetParameter,
+                    state,
+                )),
             }
-            Ok(())
         }
     }
 
@@ -189,14 +191,12 @@ pub mod omx {
         hComponent: OMX_HANDLETYPE,
         nConfigIndex: OMX_INDEXTYPE,
         pComponentConfigStructure: *mut ::std::os::raw::c_void,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if wOMX_SetConfig(hComponent, nConfigIndex, pComponentConfigStructure)
-                != OMX_ERRORTYPE_OMX_ErrorNone
-            {
-                return Err(OMXError::UnableToSetConfig);
+            match wOMX_SetConfig(hComponent, nConfigIndex, pComponentConfigStructure) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::OMXError(Operation::UnableToSetConfig, state)),
             }
-            Ok(())
         }
     }
 
@@ -207,32 +207,31 @@ pub mod omx {
         pAppPrivate: OMX_PTR,
         nSizeBytes: OMX_U32,
         pBuffer: *const OMX_U8,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if wOMX_UseBuffer(
+            match wOMX_UseBuffer(
                 hComponent,
                 ppBufferHdr,
                 nPortIndex,
                 pAppPrivate,
                 nSizeBytes,
                 pBuffer,
-            ) != OMX_ERRORTYPE_OMX_ErrorNone
-            {
-                return Err(OMXError::UseBufferFailed);
+            ) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::OMXError(Operation::UseBufferFailed, state)),
             }
-            Ok(())
         }
     }
 
     pub fn empty_this_buffer(
         hComponent: OMX_HANDLETYPE,
         pBuffer: *mut OMX_BUFFERHEADERTYPE,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if wOMX_EmptyThisBuffer(hComponent, pBuffer) != OMX_ERRORTYPE_OMX_ErrorNone {
-                return Err(OMXError::EmptyBufferFailed);
+            match wOMX_EmptyThisBuffer(hComponent, pBuffer) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::OMXError(Operation::EmptyBufferFailed, state)),
             }
-            Ok(())
         }
     }
 
@@ -240,12 +239,12 @@ pub mod omx {
         hComponent: OMX_HANDLETYPE,
         nPortIndex: OMX_U32,
         pBuffer: *mut OMX_U8,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if wOMX_FreeBuffer(hComponent, nPortIndex, pBuffer) != OMX_ERRORTYPE_OMX_ErrorNone {
-                return Err(OMXError::FreeBufferFailed);
+            match wOMX_FreeBuffer(hComponent, nPortIndex, pBuffer) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::OMXError(Operation::FreeBufferFailed, state)),
             }
-            Ok(())
         }
     }
 
@@ -254,14 +253,12 @@ pub mod omx {
         nPortOutput: OMX_U32,
         hInput: OMX_HANDLETYPE,
         nPortInput: OMX_U32,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         unsafe {
-            if OMX_SetupTunnel(hOutput, nPortOutput, hInput, nPortInput)
-                != OMX_ERRORTYPE_OMX_ErrorNone
-            {
-                return Err(OMXError::SetupTunnelFailed);
+            match OMX_SetupTunnel(hOutput, nPortOutput, hInput, nPortInput) {
+                OMX_ERRORTYPE_OMX_ErrorNone => Ok(()),
+                state => Err(PipelineError::OMXError(Operation::SetupTunnelFailed, state)),
             }
-            Ok(())
         }
     }
 }

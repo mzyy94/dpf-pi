@@ -1,7 +1,7 @@
 use std::mem::size_of;
 use std::os::raw::c_void;
 
-use crate::error::OMXError;
+use crate::error::PipelineError;
 use crate::vc::*;
 
 #[derive(Debug, Default)]
@@ -43,7 +43,7 @@ impl Component {
         client: *mut ILCLIENT_T,
         name: String,
         flags: ILCLIENT_CREATE_FLAGS_T,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         let mut component: *mut COMPONENT_T = &mut Default::default();
 
         ilclient::create_component(client, &mut component, name, flags)?;
@@ -60,17 +60,25 @@ impl Component {
         ilclient::get_handle(self.component())
     }
 
-    pub fn get_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
+    pub fn get_parameter<T>(
+        &self,
+        index: OMX_INDEXTYPE,
+        param: &mut T,
+    ) -> Result<(), PipelineError> {
         let param = param as *mut _ as *mut c_void;
         omx::get_parameter(self.handle(), index, param)
     }
 
-    pub fn set_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
+    pub fn set_parameter<T>(
+        &self,
+        index: OMX_INDEXTYPE,
+        param: &mut T,
+    ) -> Result<(), PipelineError> {
         let param = param as *mut _ as *mut c_void;
         omx::set_parameter(self.handle(), index, param)
     }
 
-    pub fn set_config<T>(&self, index: OMX_INDEXTYPE, config: &mut T) -> Result<(), OMXError> {
+    pub fn set_config<T>(&self, index: OMX_INDEXTYPE, config: &mut T) -> Result<(), PipelineError> {
         let config = config as *mut _ as *mut c_void;
         omx::set_config(self.handle(), index, config)
     }
@@ -79,7 +87,7 @@ impl Component {
         &mut self,
         direction: Direction,
         display_rect: Option<OMX_DISPLAYRECTTYPE>,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         let port = match direction {
             Direction::In => self.in_port,
             Direction::Out => self.out_port,
@@ -114,7 +122,11 @@ impl Component {
         self.set_config(OMX_INDEXTYPE_OMX_IndexConfigDisplayRegion, &mut disp)
     }
 
-    pub fn send_command(&self, cmd: OMX_COMMANDTYPE, direction: Direction) -> Result<(), OMXError> {
+    pub fn send_command(
+        &self,
+        cmd: OMX_COMMANDTYPE,
+        direction: Direction,
+    ) -> Result<(), PipelineError> {
         let port = match direction {
             Direction::In => self.in_port,
             Direction::Out => self.out_port,
@@ -122,11 +134,11 @@ impl Component {
         omx::send_command(self.handle(), cmd, port, std::ptr::null_mut())
     }
 
-    pub fn enable_port(&self, direction: Direction) -> Result<(), OMXError> {
+    pub fn enable_port(&self, direction: Direction) -> Result<(), PipelineError> {
         self.send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, direction)
     }
 
-    pub fn disable_port(&self, direction: Direction) -> Result<(), OMXError> {
+    pub fn disable_port(&self, direction: Direction) -> Result<(), PipelineError> {
         self.send_command(OMX_COMMANDTYPE_OMX_CommandPortDisable, direction)
     }
 
@@ -136,7 +148,7 @@ impl Component {
         width: u32,
         height: u32,
         buffer_size: Option<u32>,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         let port = match direction {
             Direction::In => self.in_port,
             Direction::Out => self.out_port,

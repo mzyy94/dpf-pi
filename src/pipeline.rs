@@ -1,7 +1,7 @@
 use std::mem::size_of;
 
 use crate::component::*;
-use crate::error::OMXError;
+use crate::error::{Operation, PipelineError};
 use crate::picture::*;
 use crate::vc::*;
 
@@ -25,7 +25,7 @@ impl Pipeline {
         }
     }
 
-    pub fn init(&mut self) -> Result<(), OMXError> {
+    pub fn init(&mut self) -> Result<(), PipelineError> {
         let mut port = OMX_PORT_PARAM_TYPE {
             nSize: size_of::<OMX_PORT_PARAM_TYPE>() as u32,
             nVersion: OMX_VERSIONTYPE {
@@ -46,7 +46,7 @@ impl Pipeline {
             .get_parameter(OMX_INDEXTYPE_OMX_IndexParamVideoInit, &mut port)?;
 
         if port.nPorts != 1 {
-            return Err(OMXError::InvalidNumberOfPorts);
+            return Err(PipelineError::Assertion(Operation::InvalidNumberOfPorts));
         }
         self.render.in_port = port.nStartPortNumber;
 
@@ -62,7 +62,7 @@ impl Pipeline {
             .get_parameter(OMX_INDEXTYPE_OMX_IndexParamImageInit, &mut port)?;
 
         if port.nPorts != 2 {
-            return Err(OMXError::InvalidNumberOfPorts);
+            return Err(PipelineError::Assertion(Operation::InvalidNumberOfPorts));
         }
         self.resize.in_port = port.nStartPortNumber;
         self.resize.out_port = port.nStartPortNumber + 1;
@@ -70,7 +70,7 @@ impl Pipeline {
         Ok(())
     }
 
-    pub fn deinit(&mut self) -> Result<(), OMXError> {
+    pub fn deinit(&mut self) -> Result<(), PipelineError> {
         if self.render.component == 0i32 || self.resize.component == 0i32 {
             // Already de-initialized
             return Ok(());
@@ -149,7 +149,7 @@ impl Pipeline {
         ilclient::destroy(self.client as *mut _)
     }
 
-    pub fn prepare_image(&mut self, image: &DisplayImage) -> Result<(), OMXError> {
+    pub fn prepare_image(&mut self, image: &DisplayImage) -> Result<(), PipelineError> {
         self.resize.set_state(State::Idle);
 
         self.resize.set_image_size(
@@ -184,7 +184,7 @@ impl Pipeline {
     pub fn set_image_config(
         &mut self,
         display_rect: Option<OMX_DISPLAYRECTTYPE>,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         self.render.set_display_region(Direction::In, display_rect)
     }
 
@@ -192,7 +192,7 @@ impl Pipeline {
         &mut self,
         content_mode: ContentMode,
         image: &DisplayImage,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         let DisplayRect { x, y, w, h } =
             DisplayRect::new_with_mode(content_mode, self.viewport, image.size());
         self.set_image_config(Some(OMX_DISPLAYRECTTYPE {
@@ -208,7 +208,7 @@ impl Pipeline {
         image: &DisplayImage,
         content_mode: ContentMode,
         timeout: i32,
-    ) -> Result<(), OMXError> {
+    ) -> Result<(), PipelineError> {
         self.prepare_image(image)?;
         self.set_image_scale(content_mode, image)?;
         omx::empty_this_buffer(self.resize.handle(), self.buffer_header as *mut _)?;

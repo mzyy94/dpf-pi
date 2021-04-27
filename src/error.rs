@@ -1,5 +1,12 @@
 #[derive(Debug)]
-pub enum OMXError {
+pub enum PipelineError {
+    ILClientError(Operation, i32),
+    OMXError(Operation, i32),
+    Assertion(Operation),
+}
+
+#[derive(Debug)]
+pub enum Operation {
     CreateComponentFailed,
     UnableToGetParameter,
     UnableToSetParameter,
