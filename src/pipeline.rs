@@ -76,7 +76,7 @@ impl Pipeline {
             // Already de-initialized
             return Ok(());
         }
-        let timeout = 500i32;
+        let timeout = 1000i32;
 
         omx::free_buffer(
             self.resize.handle(),
@@ -86,7 +86,7 @@ impl Pipeline {
 
         self.resize.disable_port(Direction::In)?;
 
-        ilclient::wait_for_event(
+        let _ = ilclient::wait_for_event(
             self.resize.component as *mut _,
             OMX_EVENTTYPE_OMX_EventCmdComplete,
             OMX_COMMANDTYPE_OMX_CommandPortDisable,
@@ -95,14 +95,14 @@ impl Pipeline {
             0,
             ILEVENT_MASK_T_ILCLIENT_PORT_DISABLED,
             timeout,
-        )?;
+        );
 
         self.resize
             .send_command(OMX_COMMANDTYPE_OMX_CommandFlush, Direction::Out)?;
         self.render
             .send_command(OMX_COMMANDTYPE_OMX_CommandFlush, Direction::In)?;
 
-        ilclient::wait_for_event(
+        let _ = ilclient::wait_for_event(
             self.resize.component as *mut _,
             OMX_EVENTTYPE_OMX_EventCmdComplete,
             OMX_COMMANDTYPE_OMX_CommandFlush,
@@ -111,9 +111,9 @@ impl Pipeline {
             0,
             ILEVENT_MASK_T_ILCLIENT_PORT_FLUSH,
             timeout,
-        )?;
+        );
 
-        ilclient::wait_for_event(
+        let _ = ilclient::wait_for_event(
             self.render.component as *mut _,
             OMX_EVENTTYPE_OMX_EventCmdComplete,
             OMX_COMMANDTYPE_OMX_CommandFlush,
@@ -122,7 +122,7 @@ impl Pipeline {
             0,
             ILEVENT_MASK_T_ILCLIENT_PORT_FLUSH,
             timeout,
-        )?;
+        );
 
         self.resize.disable_port(Direction::Out)?;
         self.render.disable_port(Direction::In)?;
@@ -234,18 +234,17 @@ impl Pipeline {
         self.render
             .set_image_size(Direction::In, width, height, None)?;
 
-        omx::setup_tunnel(
+        let _ = omx::setup_tunnel(
             self.resize.handle(),
             self.resize.out_port,
             self.render.handle(),
             self.render.in_port,
-        )
-        .ok();
+        );
 
         self.resize.enable_port(Direction::Out)?;
         self.render.enable_port(Direction::In)?;
 
-        ilclient::wait_for_event(
+        let _ = ilclient::wait_for_event(
             self.render.component as *mut _,
             OMX_EVENTTYPE_OMX_EventBufferFlag,
             self.render.in_port,
@@ -254,8 +253,7 @@ impl Pipeline {
             0,
             ILEVENT_MASK_T_ILCLIENT_BUFFER_FLAG_EOS,
             timeout,
-        )
-        .ok();
+        );
 
         Ok(())
     }

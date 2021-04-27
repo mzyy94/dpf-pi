@@ -169,6 +169,6 @@ impl Component {
             State::Pause => OMX_STATETYPE_OMX_StatePause,
             State::WaitForResources => OMX_STATETYPE_OMX_StateWaitForResources,
         };
-        ilclient::change_component_state(self.component as *mut _, state).ok();
+        let _ = ilclient::change_component_state(self.component as *mut _, state);
     }
 }
