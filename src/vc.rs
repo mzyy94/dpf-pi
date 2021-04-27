@@ -32,6 +32,12 @@ impl Default for OMX_DISPLAYRECTTYPE {
     }
 }
 
+impl Default for OMX_BUFFERHEADERTYPE {
+    fn default() -> Self {
+        unsafe { std::mem::zeroed() }
+    }
+}
+
 pub mod ilclient {
     use super::*;
 
