@@ -14,7 +14,7 @@ pub struct Pipeline {
 }
 
 impl Pipeline {
-    pub fn new() -> Pipeline {
+    pub fn new(width: u32, height: u32) -> Pipeline {
         let client = ilclient::init();
 
         Pipeline {
@@ -22,13 +22,11 @@ impl Pipeline {
             buffer_header: 0,
             render: Default::default(),
             resize: Default::default(),
-            viewport: (0, 0),
+            viewport: (width, height),
         }
     }
 
-    pub fn init(&mut self, width: u32, height: u32) -> Result<(), OMXError> {
-        self.viewport = (width, height);
-
+    pub fn init(&mut self) -> Result<(), OMXError> {
         let mut port = OMX_PORT_PARAM_TYPE {
             nSize: size_of::<OMX_PORT_PARAM_TYPE>() as u32,
             nVersion: OMX_VERSIONTYPE {

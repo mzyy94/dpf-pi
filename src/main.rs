@@ -33,8 +33,8 @@ fn main() {
 
     let (width, height) = omx::get_display_size(0);
 
-    let pipeline = Arc::new(Mutex::new(Pipeline::new()));
-    pipeline.lock().unwrap().init(width, height).unwrap();
+    let pipeline = Arc::new(Mutex::new(Pipeline::new(width, height)));
+    pipeline.lock().unwrap().init().unwrap();
 
     let image = image::open(&Path::new(&file)).unwrap();
     let image = image::DynamicImage::to_rgba8(&image);
