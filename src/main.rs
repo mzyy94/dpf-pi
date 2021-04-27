@@ -8,23 +8,12 @@ mod vc;
 use pipeline::*;
 use vc::*;
 
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::{Arc, Mutex};
-use std::thread;
-use std::time;
-
 use hyper::service::{make_service_fn, service_fn};
 use hyper::Server;
+use std::sync::{Arc, Mutex};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
-    let running = Arc::new(AtomicBool::new(true));
-    let r = running.clone();
-    ctrlc::set_handler(move || {
-        r.store(false, Ordering::SeqCst);
-    })
-    .unwrap();
-
     omx::init();
 
     let (width, height) = omx::get_display_size(0);
@@ -41,11 +30,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     println!("Listening on http://{}", addr);
     server.await?;
 
-    while running.load(Ordering::SeqCst) {
-        thread::sleep(time::Duration::from_millis(10));
-    }
-
     pipeline.lock().unwrap().destroy();
     omx::deinit();
+    println!("See you!");
     Ok(())
 }
