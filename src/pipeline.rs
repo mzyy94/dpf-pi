@@ -71,6 +71,81 @@ impl Pipeline {
         Ok(())
     }
 
+    pub fn deinit(&mut self) -> Result<(), OMXError> {
+        if self.render.component == 0i32 || self.resize.component == 0i32 {
+            // Already de-initialized
+            return Ok(());
+        }
+        let timeout = 500i32;
+
+        omx::free_buffer(
+            self.resize.handle(),
+            self.resize.in_port,
+            self.buffer_header as *mut _,
+        )?;
+
+        self.resize.disable_port(Direction::In)?;
+
+        ilclient::wait_for_event(
+            self.resize.component as *mut _,
+            OMX_EVENTTYPE_OMX_EventCmdComplete,
+            OMX_COMMANDTYPE_OMX_CommandPortDisable,
+            0,
+            self.resize.in_port,
+            0,
+            ILEVENT_MASK_T_ILCLIENT_PORT_DISABLED,
+            timeout,
+        )?;
+
+        self.resize
+            .send_command(OMX_COMMANDTYPE_OMX_CommandFlush, Direction::Out)?;
+        self.render
+            .send_command(OMX_COMMANDTYPE_OMX_CommandFlush, Direction::In)?;
+
+        ilclient::wait_for_event(
+            self.resize.component as *mut _,
+            OMX_EVENTTYPE_OMX_EventCmdComplete,
+            OMX_COMMANDTYPE_OMX_CommandFlush,
+            0,
+            self.resize.out_port,
+            0,
+            ILEVENT_MASK_T_ILCLIENT_PORT_FLUSH,
+            timeout,
+        )?;
+
+        ilclient::wait_for_event(
+            self.render.component as *mut _,
+            OMX_EVENTTYPE_OMX_EventCmdComplete,
+            OMX_COMMANDTYPE_OMX_CommandFlush,
+            0,
+            self.render.in_port,
+            0,
+            ILEVENT_MASK_T_ILCLIENT_PORT_FLUSH,
+            timeout,
+        )?;
+
+        self.resize.disable_port(Direction::Out)?;
+        self.render.disable_port(Direction::In)?;
+
+        self.resize.set_state(State::Idle);
+        self.resize.set_state(State::Loaded);
+
+        self.render.set_state(State::Idle);
+        self.render.set_state(State::Loaded);
+
+        let mut list = vec![
+            self.render.component as *mut COMPONENT_T,
+            self.resize.component as *mut COMPONENT_T,
+            0i32 as *mut COMPONENT_T,
+        ];
+        ilclient::cleanup_components(list.as_mut_ptr());
+
+        self.render.component = 0i32;
+        self.resize.component = 0i32;
+
+        Ok(())
+    }
+
     pub fn destroy(&mut self) {
         ilclient::destroy(self.client as *mut _)
     }
