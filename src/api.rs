@@ -12,7 +12,8 @@ pub async fn handler(
         (&Method::POST, "/image/show") => {
             use image::io::Reader as ImageReader;
 
-            let whole_body = hyper::body::to_bytes(req.into_body()).await?;
+            let (parts, body) = req.into_parts();
+            let whole_body = hyper::body::to_bytes(body).await?;
             let cur = std::io::Cursor::new(whole_body);
 
             let image = ImageReader::new(cur)
@@ -25,11 +26,22 @@ pub async fn handler(
 
             let text = format!("render {}x{}", image.width(), image.height());
 
+            let content_mode = if let Some(mode) = parts.headers.get("x-rendering-mode") {
+                match mode.to_str() {
+                    Ok("AspectFit") => ContentMode::Aspect(AspectMode::Fit),
+                    Ok("AspectFill") => ContentMode::Aspect(AspectMode::Fill),
+                    Ok("Fill") => ContentMode::ScaleToFill,
+                    _ => ContentMode::None,
+                }
+            } else {
+                ContentMode::Aspect(AspectMode::Fit)
+            };
+
             pipeline.lock().unwrap().init().unwrap();
             pipeline
                 .lock()
                 .unwrap()
-                .render_image(&image, ContentMode::Aspect(AspectMode::Fit), 2000)
+                .render_image(&image, content_mode, 2000)
                 .unwrap();
 
             Ok(Response::new(Body::from(text)))
