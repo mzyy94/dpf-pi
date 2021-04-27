@@ -123,6 +123,10 @@ impl Component {
         self.send_command(OMX_COMMANDTYPE_OMX_CommandPortEnable, direction)
     }
 
+    pub fn disable_port(&self, direction: Direction) -> Result<(), OMXError> {
+        self.send_command(OMX_COMMANDTYPE_OMX_CommandPortDisable, direction)
+    }
+
     pub fn set_image_size(
         &mut self,
         direction: Direction,
