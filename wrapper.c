@@ -34,3 +34,8 @@ OMX_S32 wOMX_UseBuffer(OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE **ppBuffe
 {
   return OMX_UseBuffer(hComponent, ppBufferHdr, nPortIndex, pAppPrivate, nSizeBytes, pBuffer);
 }
+
+OMX_S32 wOMX_FreeBuffer(OMX_HANDLETYPE hComponent, OMX_U32 nPortIndex, OMX_U8 *pBuffer)
+{
+  return OMX_FreeBuffer(hComponent, nPortIndex, pBuffer);
+}

@@ -8,6 +8,7 @@ pub enum OMXError {
     SendCommandFailed,
     UseBufferFailed,
     EmptyBufferFailed,
+    FreeBufferFailed,
     EventTimeout,
     SetupTunnelFailed,
 }

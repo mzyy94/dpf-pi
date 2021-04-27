@@ -232,6 +232,19 @@ pub mod omx {
         }
     }
 
+    pub fn free_buffer(
+        hComponent: OMX_HANDLETYPE,
+        nPortIndex: OMX_U32,
+        pBuffer: *mut OMX_U8,
+    ) -> Result<(), OMXError> {
+        unsafe {
+            if wOMX_FreeBuffer(hComponent, nPortIndex, pBuffer) != OMX_ERRORTYPE_OMX_ErrorNone {
+                return Err(OMXError::FreeBufferFailed);
+            }
+            Ok(())
+        }
+    }
+
     pub fn setup_tunnel(
         hOutput: OMX_HANDLETYPE,
         nPortOutput: OMX_U32,
