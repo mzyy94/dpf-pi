@@ -5,6 +5,7 @@ use crate::error::OMXError;
 use crate::picture::*;
 use crate::vc::*;
 
+#[derive(Debug, Default)]
 pub struct Pipeline {
     client: i32,
     buffer_header: i32,
@@ -19,10 +20,8 @@ impl Pipeline {
 
         Pipeline {
             client: client as i32,
-            buffer_header: 0,
-            render: Default::default(),
-            resize: Default::default(),
             viewport: (width, height),
+            ..Default::default()
         }
     }
 
