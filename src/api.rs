@@ -37,6 +37,7 @@ pub async fn handler(
                 ContentMode::Aspect(AspectMode::Fit)
             };
 
+            pipeline.lock().unwrap().deinit().unwrap();
             pipeline.lock().unwrap().init().unwrap();
             pipeline
                 .lock()
