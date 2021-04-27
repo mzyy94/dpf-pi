@@ -87,7 +87,7 @@ impl Pipeline {
         self.resize.disable_port(Direction::In)?;
 
         let _ = ilclient::wait_for_event(
-            self.resize.component as *mut _,
+            self.resize.component(),
             OMX_EVENTTYPE_OMX_EventCmdComplete,
             OMX_COMMANDTYPE_OMX_CommandPortDisable,
             0,
@@ -103,7 +103,7 @@ impl Pipeline {
             .send_command(OMX_COMMANDTYPE_OMX_CommandFlush, Direction::In)?;
 
         let _ = ilclient::wait_for_event(
-            self.resize.component as *mut _,
+            self.resize.component(),
             OMX_EVENTTYPE_OMX_EventCmdComplete,
             OMX_COMMANDTYPE_OMX_CommandFlush,
             0,
@@ -114,7 +114,7 @@ impl Pipeline {
         );
 
         let _ = ilclient::wait_for_event(
-            self.render.component as *mut _,
+            self.render.component(),
             OMX_EVENTTYPE_OMX_EventCmdComplete,
             OMX_COMMANDTYPE_OMX_CommandFlush,
             0,
@@ -134,8 +134,8 @@ impl Pipeline {
         self.render.set_state(State::Loaded);
 
         let mut list = vec![
-            self.render.component as *mut COMPONENT_T,
-            self.resize.component as *mut COMPONENT_T,
+            self.render.component(),
+            self.resize.component(),
             0i32 as *mut COMPONENT_T,
         ];
         ilclient::cleanup_components(list.as_mut_ptr());
@@ -215,7 +215,7 @@ impl Pipeline {
         omx::empty_this_buffer(self.resize.handle(), self.buffer_header as *mut _)?;
 
         ilclient::wait_for_event(
-            self.resize.component as *mut _,
+            self.resize.component(),
             OMX_EVENTTYPE_OMX_EventPortSettingsChanged,
             self.resize.out_port,
             0,
@@ -245,7 +245,7 @@ impl Pipeline {
         self.render.enable_port(Direction::In)?;
 
         let _ = ilclient::wait_for_event(
-            self.render.component as *mut _,
+            self.render.component(),
             OMX_EVENTTYPE_OMX_EventBufferFlag,
             self.render.in_port,
             0,

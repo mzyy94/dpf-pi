@@ -52,9 +52,12 @@ impl Component {
         Ok(())
     }
 
+    pub fn component(&self) -> *mut COMPONENT_T {
+        self.component as *mut _
+    }
+
     pub fn handle(&self) -> OMX_HANDLETYPE {
-        let component = self.component as *mut _;
-        ilclient::get_handle(component)
+        ilclient::get_handle(self.component())
     }
 
     pub fn get_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
@@ -169,6 +172,6 @@ impl Component {
             State::Pause => OMX_STATETYPE_OMX_StatePause,
             State::WaitForResources => OMX_STATETYPE_OMX_StateWaitForResources,
         };
-        let _ = ilclient::change_component_state(self.component as *mut _, state);
+        let _ = ilclient::change_component_state(self.component(), state);
     }
 }
