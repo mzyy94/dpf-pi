@@ -94,7 +94,7 @@ impl Pipeline {
         let mut buffer_header: *mut OMX_BUFFERHEADERTYPE = &mut Default::default();
 
         omx::use_buffer(
-            self.resize.handle,
+            self.resize.handle(),
             &mut buffer_header,
             self.resize.in_port,
             std::ptr::null_mut(),
@@ -143,7 +143,7 @@ impl Pipeline {
         self.prepare_image(image)?;
         self.set_image_scale(content_mode, image)?;
         omx::empty_this_buffer(
-            self.resize.handle,
+            self.resize.handle(),
             Arc::into_raw(self.buffer_header.clone()) as *mut _,
         )?;
 
@@ -168,9 +168,9 @@ impl Pipeline {
             .set_image_size(Direction::In, width, height, None)?;
 
         omx::setup_tunnel(
-            self.resize.handle,
+            self.resize.handle(),
             self.resize.out_port,
-            self.render.handle,
+            self.render.handle(),
             self.render.in_port,
         )
         .ok();

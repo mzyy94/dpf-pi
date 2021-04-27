@@ -7,7 +7,6 @@ use crate::vc::*;
 
 pub struct Component {
     pub component: Arc<COMPONENT_T>,
-    pub handle: OMX_HANDLETYPE,
     pub in_port: u32,
     pub out_port: u32,
 }
@@ -16,7 +15,6 @@ impl Default for Component {
     fn default() -> Self {
         Self {
             component: Arc::new(Default::default()),
-            handle: 0 as *mut c_void,
             in_port: 0,
             out_port: 0,
         }
@@ -60,24 +58,28 @@ impl Component {
 
         ilclient::create_component(client, &mut component, name, flags)?;
 
-        self.handle = ilclient::get_handle(component);
         self.component = unsafe { Arc::from_raw(component) };
         Ok(())
     }
 
+    pub fn handle(&self) -> OMX_HANDLETYPE {
+        let component = Arc::into_raw(self.component.clone()) as *mut _;
+        ilclient::get_handle(component)
+    }
+
     pub fn get_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
         let param = param as *mut _ as *mut c_void;
-        omx::get_parameter(self.handle, index, param)
+        omx::get_parameter(self.handle(), index, param)
     }
 
     pub fn set_parameter<T>(&self, index: OMX_INDEXTYPE, param: &mut T) -> Result<(), OMXError> {
         let param = param as *mut _ as *mut c_void;
-        omx::set_parameter(self.handle, index, param)
+        omx::set_parameter(self.handle(), index, param)
     }
 
     pub fn set_config<T>(&self, index: OMX_INDEXTYPE, config: &mut T) -> Result<(), OMXError> {
         let config = config as *mut _ as *mut c_void;
-        omx::set_config(self.handle, index, config)
+        omx::set_config(self.handle(), index, config)
     }
 
     pub fn set_display_region(
@@ -124,7 +126,7 @@ impl Component {
             Direction::In => self.in_port,
             Direction::Out => self.out_port,
         };
-        omx::send_command(self.handle, cmd, port, std::ptr::null_mut())
+        omx::send_command(self.handle(), cmd, port, std::ptr::null_mut())
     }
 
     pub fn enable_port(&self, direction: Direction) -> Result<(), OMXError> {
