@@ -109,6 +109,10 @@ pub mod ilclient {
             Ok(())
         }
     }
+
+    pub fn cleanup_components(list: *mut *mut COMPONENT_T) {
+        unsafe { ilclient_cleanup_components(list) }
+    }
 }
 
 pub mod omx {
