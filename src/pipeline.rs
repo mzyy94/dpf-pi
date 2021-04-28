@@ -176,7 +176,7 @@ impl Pipeline {
             self.resize.in_port,
             std::ptr::null_mut(),
             image.len(),
-            image.as_raw().as_ptr(),
+            image.as_raw().as_ptr() as *mut _,
         )?;
 
         self.resize.set_state(State::Executing);

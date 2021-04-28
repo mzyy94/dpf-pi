@@ -30,12 +30,12 @@ OMX_S32 wOMX_SendCommand(OMX_HANDLETYPE hComponent, OMX_COMMANDTYPE Cmd, OMX_U32
   return OMX_SendCommand(hComponent, Cmd, nParam1, pCmdData);
 }
 
-OMX_S32 wOMX_UseBuffer(OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE **ppBufferHdr, OMX_U32 nPortIndex, OMX_PTR pAppPrivate, OMX_U32 nSizeBytes, const OMX_U8 *pBuffer)
+OMX_S32 wOMX_UseBuffer(OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE **ppBufferHdr, OMX_U32 nPortIndex, OMX_PTR pAppPrivate, OMX_U32 nSizeBytes, OMX_U8 *pBuffer)
 {
   return OMX_UseBuffer(hComponent, ppBufferHdr, nPortIndex, pAppPrivate, nSizeBytes, pBuffer);
 }
 
-OMX_S32 wOMX_FreeBuffer(OMX_HANDLETYPE hComponent, OMX_U32 nPortIndex, OMX_U8 *pBuffer)
+OMX_S32 wOMX_FreeBuffer(OMX_HANDLETYPE hComponent, OMX_U32 nPortIndex, OMX_BUFFERHEADERTYPE *pBuffer)
 {
   return OMX_FreeBuffer(hComponent, nPortIndex, pBuffer);
 }

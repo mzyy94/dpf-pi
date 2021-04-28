@@ -206,7 +206,7 @@ pub mod omx {
         nPortIndex: OMX_U32,
         pAppPrivate: OMX_PTR,
         nSizeBytes: OMX_U32,
-        pBuffer: *const OMX_U8,
+        pBuffer: *mut OMX_U8,
     ) -> Result<(), PipelineError> {
         unsafe {
             match wOMX_UseBuffer(
@@ -238,7 +238,7 @@ pub mod omx {
     pub fn free_buffer(
         hComponent: OMX_HANDLETYPE,
         nPortIndex: OMX_U32,
-        pBuffer: *mut OMX_U8,
+        pBuffer: *mut OMX_BUFFERHEADERTYPE,
     ) -> Result<(), PipelineError> {
         unsafe {
             match wOMX_FreeBuffer(hComponent, nPortIndex, pBuffer) {
