@@ -77,11 +77,11 @@ impl Pipeline {
         }
         let timeout = 1000i32;
 
-        omx::free_buffer(
+        let _ = omx::free_buffer(
             self.resize.handle(),
             self.resize.in_port,
             self.buffer_header as *mut _,
-        )?;
+        );
 
         self.resize.disable_port(Direction::In)?;
 
@@ -143,6 +143,25 @@ impl Pipeline {
         self.resize.component = 0i32;
 
         Ok(())
+    }
+
+    fn setup(&mut self) -> Result<(), PipelineError> {
+        self.resize.set_state(State::Idle);
+        self.render.set_state(State::Idle);
+
+        self.resize.disable_port(Direction::In)?;
+        self.resize.disable_port(Direction::Out)?;
+        self.render.disable_port(Direction::In)?;
+
+        Ok(())
+    }
+
+    fn cleanup_image(&mut self) -> Result<(), PipelineError> {
+        omx::free_buffer(
+            self.resize.handle(),
+            self.resize.in_port,
+            self.buffer_header as *mut _,
+        )
     }
 
     pub fn destroy(&mut self) {
@@ -209,6 +228,7 @@ impl Pipeline {
         content_mode: ContentMode,
         timeout: i32,
     ) -> Result<(), PipelineError> {
+        self.setup()?;
         self.prepare_image(image)?;
         self.set_image_scale(content_mode, image)?;
         omx::empty_this_buffer(self.resize.handle(), self.buffer_header as *mut _)?;
@@ -253,6 +273,8 @@ impl Pipeline {
             ILEVENT_MASK_T_ILCLIENT_BUFFER_FLAG_EOS,
             timeout,
         );
+
+        self.cleanup_image()?;
 
         Ok(())
     }

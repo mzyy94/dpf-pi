@@ -39,8 +39,6 @@ pub async fn handler(
 
             {
                 let mut pipeline = pipeline.lock().unwrap();
-                pipeline.deinit().unwrap();
-                pipeline.init().unwrap();
                 pipeline.render_image(&image, content_mode, 2000).unwrap();
             }
 

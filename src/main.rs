@@ -24,6 +24,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
 
     let (width, height) = omx::get_display_size(0);
     let pipeline = Arc::new(Mutex::new(Pipeline::new(width, height)));
+    pipeline.lock().unwrap().init().unwrap();
 
     let addr = ([127, 0, 0, 1], 3000).into();
     let service_pipeline = pipeline.clone();
@@ -39,6 +40,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
         eprintln!("Server error: {}", e);
     }
 
+    pipeline.lock().unwrap().deinit().unwrap();
     pipeline.lock().unwrap().destroy();
     omx::deinit();
     println!("See you!");
