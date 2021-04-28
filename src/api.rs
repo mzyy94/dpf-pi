@@ -45,6 +45,24 @@ pub async fn handler(
             Ok(Response::new(Body::from(text)))
         }
 
+        (&Method::OPTIONS, _) => {
+            let mut cors = Response::default();
+            *cors.status_mut() = StatusCode::OK;
+            for (key, value) in req.headers() {
+                use hyper::header::*;
+                if let Some(key) = match key {
+                    &ACCESS_CONTROL_REQUEST_HEADERS => Some(ACCESS_CONTROL_ALLOW_HEADERS),
+                    &ACCESS_CONTROL_REQUEST_METHOD => Some(ACCESS_CONTROL_ALLOW_METHODS),
+                    &ORIGIN => Some(ACCESS_CONTROL_ALLOW_ORIGIN),
+                    _ => None,
+                } {
+                    cors.headers_mut().insert(key, value.clone());
+                }
+            }
+
+            Ok(cors)
+        }
+
         _ => {
             let mut not_found = Response::default();
             *not_found.status_mut() = StatusCode::NOT_FOUND;
