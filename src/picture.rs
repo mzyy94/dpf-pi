@@ -1,14 +1,26 @@
-use image::{ImageBuffer, Rgba, RgbaImage};
+use image::{ImageBuffer, ImageFormat, Rgba, RgbaImage};
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct DisplayImage {
+    #[serde(skip_serializing)]
     image: RgbaImage,
     width: u32,
     height: u32,
+    size: usize,
+    #[serde(serialize_with = "format_serde")]
+    format: ImageFormat,
+}
+
+fn format_serde<S>(image_format: &ImageFormat, s: S) -> Result<S::Ok, S::Error>
+where
+    S: serde::Serializer,
+{
+    s.serialize_str(&format!("{:?}", image_format).to_lowercase())
 }
 
 impl DisplayImage {
-    pub fn new(img: RgbaImage) -> Self {
+    pub fn new(img: RgbaImage, size: usize, format: ImageFormat) -> Self {
         let width = img.width();
         let height = img.height();
         let xstride = (width + 0b1111) & !0b1111;
@@ -16,6 +28,8 @@ impl DisplayImage {
             return Self {
                 width,
                 height,
+                size,
+                format,
                 image: img,
             };
         }
@@ -31,6 +45,8 @@ impl DisplayImage {
         Self {
             width,
             height,
+            size,
+            format,
             image,
         }
     }
@@ -56,17 +72,29 @@ impl DisplayImage {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum AspectMode {
     Fill,
     Fit,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
 pub enum ContentMode {
     None,
     Aspect(AspectMode),
     ScaleToFill,
+}
+
+impl Serialize for ContentMode {
+    fn serialize<S>(&self, s: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        match self {
+            ContentMode::Aspect(mode) => s.serialize_str(&format!("Aspect{:?}", mode)),
+            _ => s.serialize_str(&format!("{:?}", *self)),
+        }
+    }
 }
 
 #[derive(Debug)]
