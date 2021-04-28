@@ -1,8 +1,18 @@
 use hyper::{Body, Method, Request, Response, StatusCode};
+use serde::Serialize;
 use std::sync::{Arc, Mutex};
 
 use crate::picture::*;
 use crate::pipeline::*;
+
+#[derive(Serialize)]
+struct ImageConfig {
+    size: usize,
+    width: u32,
+    height: u32,
+    format: String,
+    content_mode: String,
+}
 
 pub async fn handler(
     req: Request<Body>,
@@ -14,17 +24,14 @@ pub async fn handler(
 
             let (parts, body) = req.into_parts();
             let whole_body = hyper::body::to_bytes(body).await?;
+            let size = whole_body.len();
             let cur = std::io::Cursor::new(whole_body);
 
-            let image = ImageReader::new(cur)
-                .with_guessed_format()
-                .unwrap()
-                .decode()
-                .unwrap();
+            let image = ImageReader::new(cur).with_guessed_format().unwrap();
+            let format = format!("{:?}", image.format().unwrap());
+            let image = image.decode().unwrap();
             let image = image::DynamicImage::to_rgba8(&image);
             let image = DisplayImage::new(image);
-
-            let text = format!("render {}x{}", image.width(), image.height());
 
             let content_mode = if let Some(mode) = parts.headers.get("x-rendering-mode") {
                 match mode.to_str() {
@@ -36,6 +43,15 @@ pub async fn handler(
             } else {
                 ContentMode::Aspect(AspectMode::Fit)
             };
+
+            let image_config = ImageConfig {
+                format,
+                width: image.width(),
+                height: image.height(),
+                size,
+                content_mode: format!("{:?}", content_mode),
+            };
+            let text = serde_json::to_string(&image_config).unwrap();
 
             {
                 let mut pipeline = pipeline.lock().unwrap();
