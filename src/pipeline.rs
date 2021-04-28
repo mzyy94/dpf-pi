@@ -16,16 +16,14 @@ pub struct Pipeline {
 
 impl Pipeline {
     pub fn new(width: u32, height: u32) -> Pipeline {
-        let client = ilclient::init();
-
         Pipeline {
-            client: client as i32,
             viewport: (width, height),
             ..Default::default()
         }
     }
 
     pub fn init(&mut self) -> Result<(), PipelineError> {
+        self.client = ilclient::init() as i32;
         let mut port = OMX_PORT_PARAM_TYPE {
             nSize: size_of::<OMX_PORT_PARAM_TYPE>() as u32,
             nVersion: OMX_VERSIONTYPE {
@@ -70,11 +68,7 @@ impl Pipeline {
         Ok(())
     }
 
-    pub fn deinit(&mut self) -> Result<(), PipelineError> {
-        if self.render.component == 0i32 || self.resize.component == 0i32 {
-            // Already de-initialized
-            return Ok(());
-        }
+    pub fn destroy(&mut self) -> Result<(), PipelineError> {
         let timeout = 1000i32;
 
         let _ = omx::free_buffer(
@@ -139,8 +133,7 @@ impl Pipeline {
         ];
         ilclient::cleanup_components(list.as_mut_ptr());
 
-        self.render.component = 0i32;
-        self.resize.component = 0i32;
+        ilclient::destroy(self.client as *mut _);
 
         Ok(())
     }
@@ -162,10 +155,6 @@ impl Pipeline {
             self.resize.in_port,
             self.buffer_header as *mut _,
         )
-    }
-
-    pub fn destroy(&mut self) {
-        ilclient::destroy(self.client as *mut _)
     }
 
     pub fn prepare_image(&mut self, image: &DisplayImage) -> Result<(), PipelineError> {
