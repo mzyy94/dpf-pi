@@ -13,10 +13,12 @@ fn main() {
 
 fn build_binding() {
     cc::Build::new()
-        .warnings(true)
+        .warnings(false)
         .flag("-Wall")
         .flag("-Wextra")
         .flag("-Wno-psabi")
+        .flag("-Wno-unused-parameter")
+        .flag("-Wno-sign-compare")
         .flag("-pipe")
         .flag("-fPIC")
         .define("STANDALONE", None)
