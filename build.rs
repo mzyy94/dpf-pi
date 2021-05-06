@@ -68,7 +68,7 @@ fn build_binding() {
     println!("cargo:rustc-link-lib=rt");
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 
-    let bindings = bindgen::Builder::default()
+    let mut builder = bindgen::Builder::default()
         .clang_arg(format!("-I{}/include/", vc_root))
         .clang_arg(format!("-I{}/include/interface/vcos/pthreads", vc_root))
         .clang_arg(format!("-I{}/include/interface/vmcs_host/linux", vc_root))
@@ -76,12 +76,15 @@ fn build_binding() {
         .clang_arg(format!("-I{}/src/hello_pi/libs/vgfont", vc_root))
         .clang_arg(format!("-I{}/src/hello_pi/libs/revision", vc_root))
         .clang_arg("-I/usr/lib/gcc/arm-linux-gnueabihf/8/include/")
-        .clang_arg("-I/usr/include/")
         .header(format!("{}/include/bcm_host.h", vc_root))
         .header(format!("{}/src/hello_pi/libs/ilclient/ilclient.h", vc_root))
-        .header("./wrapper.h")
-        .generate()
-        .expect("Unable to generate bindings!");
+        .header("./wrapper.h");
+
+    if let Ok(sysroot) = env::var("SYSROOT") {
+        builder = builder.clang_arg(format!("--sysroot={}", sysroot));
+    }
+
+    let bindings = builder.generate().expect("Unable to generate bindings!");
 
     bindings
         .write_to_file(out_path.join("bindings.rs"))
