@@ -161,7 +161,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "digiphoto"
+name = "dpf-pi"
 version = "0.1.0"
 dependencies = [
  "bindgen",
