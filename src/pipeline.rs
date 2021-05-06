@@ -1,3 +1,7 @@
+/*
+Copyright (c) 2021, Yuki MIZUNO
+SPDX-License-Identifier: BSD-3-Clause
+*/
 use std::mem::size_of;
 
 use crate::component::*;
