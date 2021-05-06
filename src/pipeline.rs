@@ -1,8 +1,8 @@
 use std::mem::size_of;
 
 use crate::component::*;
+use crate::display::*;
 use crate::error::{Operation, PipelineError};
-use crate::picture::*;
 use crate::vc::*;
 
 #[derive(Debug, Default)]

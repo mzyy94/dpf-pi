@@ -1,7 +1,7 @@
 mod api;
 mod component;
+mod display;
 mod error;
-mod picture;
 mod pipeline;
 mod vc;
 

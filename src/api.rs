@@ -1,7 +1,7 @@
 use hyper::{Body, Method, Request, Response, StatusCode};
 use std::sync::{Arc, Mutex};
 
-use crate::picture::*;
+use crate::display::*;
 use crate::pipeline::*;
 
 pub async fn handler(
