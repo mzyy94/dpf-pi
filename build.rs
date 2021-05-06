@@ -4,14 +4,19 @@ use std::env;
 use std::path::PathBuf;
 
 fn main() {
+    let vc_root = env::var("VC_ROOT").unwrap_or("/opt/vc".to_string());
     println!("cargo:rerun-if-changed=build.rs");
-    println!("cargo:rerun-if-changed=/opt/vc/src/hello_pi/libs/ilclient/ilclient.c");
+    println!(
+        "cargo:rerun-if-changed={}/src/hello_pi/libs/ilclient/ilclient.c",
+        vc_root
+    );
     println!("cargo:rerun-if-changed=wrapper.h");
     println!("cargo:rerun-if-changed=wrapper.c");
     build_binding();
 }
 
 fn build_binding() {
+    let vc_root = env::var("VC_ROOT").unwrap_or("/opt/vc".to_string());
     cc::Build::new()
         .warnings(false)
         .flag("-Wall")
@@ -37,16 +42,16 @@ fn build_binding() {
         .define("HAVE_LIBBCM_HOST", None)
         .define("USE_EXTERNAL_LIBBCM_HOST", None)
         .define("USE_VCHIQ_ARM", None)
-        .file("/opt/vc/src/hello_pi/libs/ilclient/ilclient.c")
-        .file("/opt/vc/src/hello_pi/libs/ilclient/ilcore.c")
+        .file(format!("{}/src/hello_pi/libs/ilclient/ilclient.c", vc_root))
+        .file(format!("{}/src/hello_pi/libs/ilclient/ilcore.c", vc_root))
         .file("./wrapper.c")
-        .include("/opt/vc/src/hello_pi/libs/ilclient/")
-        .include("/opt/vc/include/")
-        .include("/opt/vc/include/interface/vcos/pthreads")
-        .include("/opt/vc/include/interface/vmcs_host/linux")
+        .include(format!("{}/src/hello_pi/libs/ilclient/", vc_root))
+        .include(format!("{}/include/", vc_root))
+        .include(format!("{}/include/interface/vcos/pthreads", vc_root))
+        .include(format!("{}/include/interface/vmcs_host/linux", vc_root))
         .compile("libilclient.a");
 
-    println!("cargo:rustc-link-search=native=/opt/vc/lib");
+    println!("cargo:rustc-link-search=native={}/lib", vc_root);
     println!(
         "cargo:rustc-link-search=native={}",
         env::var("OUT_DIR").unwrap()
@@ -64,16 +69,16 @@ fn build_binding() {
     let out_path = PathBuf::from(env::var("OUT_DIR").unwrap());
 
     let bindings = bindgen::Builder::default()
-        .clang_arg("-I/opt/vc/include/")
-        .clang_arg("-I/opt/vc/include/interface/vcos/pthreads")
-        .clang_arg("-I/opt/vc/include/interface/vmcs_host/linux")
-        .clang_arg("-I/opt/vc/src/hello_pi/libs/ilclient")
-        .clang_arg("-I/opt/vc/src/hello_pi/libs/vgfont")
-        .clang_arg("-I/opt/vc/src/hello_pi/libs/revision")
+        .clang_arg(format!("-I{}/include/", vc_root))
+        .clang_arg(format!("-I{}/include/interface/vcos/pthreads", vc_root))
+        .clang_arg(format!("-I{}/include/interface/vmcs_host/linux", vc_root))
+        .clang_arg(format!("-I{}/src/hello_pi/libs/ilclient", vc_root))
+        .clang_arg(format!("-I{}/src/hello_pi/libs/vgfont", vc_root))
+        .clang_arg(format!("-I{}/src/hello_pi/libs/revision", vc_root))
         .clang_arg("-I/usr/lib/gcc/arm-linux-gnueabihf/8/include/")
         .clang_arg("-I/usr/include/")
-        .header("/opt/vc/include/bcm_host.h")
-        .header("/opt/vc/src/hello_pi/libs/ilclient/ilclient.h")
+        .header(format!("{}/include/bcm_host.h", vc_root))
+        .header(format!("{}/src/hello_pi/libs/ilclient/ilclient.h", vc_root))
         .header("./wrapper.h")
         .generate()
         .expect("Unable to generate bindings!");
