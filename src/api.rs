@@ -133,14 +133,13 @@ pub async fn handler(
             *cors.status_mut() = StatusCode::OK;
             for (key, value) in req.headers() {
                 use hyper::header::*;
-                if let Some(key) = match key {
-                    &ACCESS_CONTROL_REQUEST_HEADERS => Some(ACCESS_CONTROL_ALLOW_HEADERS),
-                    &ACCESS_CONTROL_REQUEST_METHOD => Some(ACCESS_CONTROL_ALLOW_METHODS),
-                    &ORIGIN => Some(ACCESS_CONTROL_ALLOW_ORIGIN),
-                    _ => None,
-                } {
-                    cors.headers_mut().insert(key, value.clone());
-                }
+                let key = match key {
+                    &ACCESS_CONTROL_REQUEST_HEADERS => ACCESS_CONTROL_ALLOW_HEADERS,
+                    &ACCESS_CONTROL_REQUEST_METHOD => ACCESS_CONTROL_ALLOW_METHODS,
+                    &ORIGIN => ACCESS_CONTROL_ALLOW_ORIGIN,
+                    _ => continue,
+                };
+                cors.headers_mut().insert(key, value.clone());
             }
 
             Ok(cors)

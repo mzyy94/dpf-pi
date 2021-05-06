@@ -116,10 +116,7 @@ impl Component {
                 None => OMX_BOOL_OMX_TRUE,
                 _ => OMX_BOOL_OMX_FALSE,
             },
-            dest_rect: match display_rect {
-                Some(rect) => rect,
-                None => Default::default(),
-            },
+            dest_rect: display_rect.unwrap_or_default(),
             transform: OMX_DISPLAYTRANSFORMTYPE_OMX_DISPLAY_ROT0,
             ..Default::default()
         };
@@ -172,9 +169,7 @@ impl Component {
         unsafe {
             set_image_defs(&mut port.format.image, width, height);
         }
-        if let Some(size) = buffer_size {
-            port.nBufferSize = size;
-        }
+        port.nBufferSize = buffer_size.unwrap_or_default();
 
         self.set_parameter(OMX_INDEXTYPE_OMX_IndexParamPortDefinition, &mut port)
     }
