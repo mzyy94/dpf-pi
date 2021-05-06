@@ -5,6 +5,14 @@ on:
 jobs:
   build:
     runs-on: ubuntu-20.04
+    continue-on-error: true
+    strategy:
+      matrix:
+       include:
+         - target: arm-unknown-linux-gnueabihf
+           sysroot: /usr/arm-linux-gnueabihf
+         - target: arm-unknown-linux-musleabihf
+           sysroot: ./arm-linux-musleabihf-cross/arm-linux-musleabihf
     steps:
       - uses: actions/checkout@v2
       - uses: actions/checkout@v2
@@ -15,28 +23,35 @@ jobs:
         with:
             toolchain: stable
             profile: minimal
-            target: arm-unknown-linux-gnueabihf
+            target: ${{ matrix.target }}
       - name: Install build tools
+        if: matrix.target == 'arm-unknown-linux-gnueabihf'
         run: |
           sudo apt update && \
           sudo apt install -y --no-install-recommends \
           binutils-arm-linux-gnueabihf gcc-arm-linux-gnueabihf \
           libclang-dev libc6-dev-armhf-cross linux-libc-dev-armhf-cross
+      - name: Install build tools
+        if: matrix.target == 'arm-unknown-linux-musleabihf'
+        run: |
+          curl https://musl.cc/arm-linux-musleabihf-cross.tgz | tar xz && \
+          echo "$PWD/arm-linux-musleabihf-cross/bin" >> $GITHUB_PATH &&
+          curl http://dl-cdn.alpinelinux.org/alpine/v3.13/main/armhf/raspberrypi-libs-0.20200813-r0.apk | tar xz -C firmware
       - uses: actions/cache@v2
         with:
           path: |
             ~/.cargo/registry
             ~/.cargo/git
             target
-          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+          key: ${{ matrix.target }}-cargo-${{ hashFiles('**/Cargo.lock') }}
       - uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --target arm-unknown-linux-gnueabihf
+          args: --target ${{ matrix.target }}
         env:
-          SYSROOT: /usr/arm-linux-gnueabihf
+          SYSROOT: ${{ matrix.sysroot }}
           VC_ROOT: ${{ github.workspace }}/firmware/opt/vc
       - uses: actions/upload-artifact@v2
         with:
-          name: dpf-pi-debug
-          path: ${{ github.workspace }}/target/arm-unknown-linux-gnueabihf/debug/dpf-pi
+          name: dpf-pi-debug-${{ matrix.target }}
+          path: ${{ github.workspace }}/target/${{ matrix.target }}/debug/dpf-pi
