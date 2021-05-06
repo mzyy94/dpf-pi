@@ -1,0 +1,42 @@
+name: build on push
+on:
+  - push
+
+jobs:
+  build:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
+        with:
+          repository: raspberrypi/firmware
+          path: firmware
+      - uses: actions-rs/toolchain@v1
+        with:
+            toolchain: stable
+            profile: minimal
+            target: arm-unknown-linux-gnueabihf
+      - name: Install build tools
+        run: |
+          sudo apt update && \
+          sudo apt install -y --no-install-recommends \
+          binutils-arm-linux-gnueabihf gcc-arm-linux-gnueabihf \
+          libclang-dev libc6-dev-armhf-cross linux-libc-dev-armhf-cross
+      - uses: actions/cache@v2
+        with:
+          path: |
+            ~/.cargo/registry
+            ~/.cargo/git
+            target
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --target arm-unknown-linux-gnueabihf
+        env:
+          SYSROOT: /usr/arm-linux-gnueabihf
+          VC_ROOT: /github/workspace/firmware/opt/vc
+      - uses: actions/upload-artifact@v2
+        with:
+          name: digiphoto-debug
+          path: target/arm-unknown-linux-gnueabihf/debug/digiphoto
