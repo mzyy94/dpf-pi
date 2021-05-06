@@ -35,7 +35,7 @@ jobs:
           args: --target arm-unknown-linux-gnueabihf
         env:
           SYSROOT: /usr/arm-linux-gnueabihf
-          VC_ROOT: /github/workspace/firmware/opt/vc
+          VC_ROOT: ${{ github.workspace }}/firmware/opt/vc
       - uses: actions/upload-artifact@v2
         with:
           name: digiphoto-debug
