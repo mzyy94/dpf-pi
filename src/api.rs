@@ -29,20 +29,27 @@ impl Query<'_> {
     }
 }
 
+fn response_json(
+    status_code: StatusCode,
+    value: serde_json::Value,
+) -> Result<Response<Body>, hyper::Error> {
+    let text = serde_json::to_string(&value).unwrap();
+
+    let mut response = Response::new(Body::from(text));
+    *response.status_mut() = status_code;
+    response.headers_mut().append(
+        hyper::header::CONTENT_TYPE,
+        hyper::header::HeaderValue::from_static("application/json"),
+    );
+    Ok(response)
+}
+
 fn error_handle(status_code: StatusCode) -> Result<Response<Body>, hyper::Error> {
     let error_response = serde_json::json!({
         "status": status_code.as_u16(),
         "error": status_code.canonical_reason(),
     });
-    let text = serde_json::to_string(&error_response).unwrap();
-
-    let mut not_found = Response::new(Body::from(text));
-    *not_found.status_mut() = status_code;
-    not_found.headers_mut().append(
-        hyper::header::CONTENT_TYPE,
-        hyper::header::HeaderValue::from_static("application/json"),
-    );
-    Ok(not_found)
+    response_json(status_code, error_response)
 }
 
 pub async fn handler(
@@ -95,12 +102,11 @@ pub async fn handler(
             }
 
             let render_config = serde_json::json!({
-                "image": serde_json::to_value(image).unwrap(),
-                "content_mode": serde_json::to_value(content_mode).unwrap(),
+                "status": StatusCode::OK.as_u16(),
+                "image": image,
+                "content_mode": content_mode,
             });
-            let text = serde_json::to_string(&render_config).unwrap();
-
-            Ok(Response::new(Body::from(text)))
+            response_json(StatusCode::OK, render_config)
         }
 
         (&Method::OPTIONS, _) => {
