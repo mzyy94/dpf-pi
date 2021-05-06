@@ -38,5 +38,5 @@ jobs:
           VC_ROOT: ${{ github.workspace }}/firmware/opt/vc
       - uses: actions/upload-artifact@v2
         with:
-          name: digiphoto-debug
-          path: target/arm-unknown-linux-gnueabihf/debug/digiphoto
+          name: dpf-pi-debug
+          path: ${{ github.workspace }}/target/arm-unknown-linux-gnueabihf/debug/dpf-pi
