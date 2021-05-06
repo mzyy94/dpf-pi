@@ -101,15 +101,18 @@ pub async fn handler(
             let image = image::DynamicImage::to_rgba8(&image);
             let image = DisplayImage::new(image, size, format);
 
-            let content_mode = if let Some(mode) = parts.headers.get("x-rendering-mode") {
-                match mode.to_str() {
-                    Ok("AspectFit") => ContentMode::Aspect(AspectMode::Fit),
-                    Ok("AspectFill") => ContentMode::Aspect(AspectMode::Fill),
-                    Ok("Fill") => ContentMode::ScaleToFill,
-                    _ => ContentMode::None,
+            let mode = query.get("mode").or(parts
+                .headers
+                .get("x-rendering-mode")
+                .and_then(|f| f.to_str().ok()));
+
+            let content_mode = match mode {
+                Some("AspectFit") | Some("aspect_fit") | None => {
+                    ContentMode::Aspect(AspectMode::Fit)
                 }
-            } else {
-                ContentMode::Aspect(AspectMode::Fit)
+                Some("AspectFill") | Some("aspect_fill") => ContentMode::Aspect(AspectMode::Fill),
+                Some("Fill") | Some("fill") => ContentMode::ScaleToFill,
+                Some(_) => ContentMode::None,
             };
 
             {
