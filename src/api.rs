@@ -8,6 +8,27 @@ use std::sync::{Arc, Mutex};
 use crate::display::*;
 use crate::pipeline::*;
 
+struct Query<'a>(Vec<Vec<&'a str>>);
+
+impl Query<'_> {
+    pub fn new<'a>(query: &'a str) -> Query<'a> {
+        Query(query.split('&').map(|x| x.split('=').collect()).collect())
+    }
+
+    pub fn get(&self, key: &str) -> Option<&str> {
+        for param in &self.0 {
+            if param[0] == key {
+                return if param.len() == 2 {
+                    Some(param[1])
+                } else {
+                    Some("")
+                };
+            }
+        }
+        None
+    }
+}
+
 pub async fn handler(
     req: Request<Body>,
     pipeline: Arc<Mutex<Pipeline>>,
@@ -15,13 +36,27 @@ pub async fn handler(
     match (req.method(), req.uri().path()) {
         (&Method::POST, "/image/show") => {
             use image::io::Reader as ImageReader;
+            use image::ImageFormat::{Bmp, Jpeg, Png};
 
             let (parts, body) = req.into_parts();
+            let query = Query::new(parts.uri.query().unwrap_or_default());
             let whole_body = hyper::body::to_bytes(body).await?;
             let size = whole_body.len();
             let cur = std::io::Cursor::new(whole_body);
 
-            let image = ImageReader::new(cur).with_guessed_format().unwrap();
+            let mut image = ImageReader::new(cur);
+            let format = query.get("format").or(parts
+                .headers
+                .get(hyper::header::CONTENT_TYPE)
+                .and_then(|f| f.to_str().ok()));
+
+            match format {
+                Some("image/png") | Some("png") => image.set_format(Png),
+                Some("image/jpeg") | Some("jpeg") | Some("jpg") => image.set_format(Jpeg),
+                Some("image/bmp") | Some("bmp") => image.set_format(Bmp),
+                _ => image = image.with_guessed_format().unwrap(),
+            };
+
             let format = image.format().unwrap();
             let image = image.decode().unwrap();
             let image = image::DynamicImage::to_rgba8(&image);
