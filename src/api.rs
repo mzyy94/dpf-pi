@@ -3,9 +3,11 @@ Copyright (c) 2021, Yuki MIZUNO
 SPDX-License-Identifier: BSD-3-Clause
 */
 use hyper::{Body, Method, Request, Response, StatusCode};
+use serde::Serialize;
 use std::sync::{Arc, Mutex};
 
 use crate::display::*;
+use crate::error::*;
 use crate::pipeline::*;
 
 struct Query<'a>(Vec<Vec<&'a str>>);
@@ -44,10 +46,17 @@ fn response_json(
     Ok(response)
 }
 
-fn error_handle(status_code: StatusCode) -> Result<Response<Body>, hyper::Error> {
-    let error_response = serde_json::json!({
-        "status": status_code.as_u16(),
-        "error": status_code.canonical_reason(),
+fn error_handle<T>(
+    status_code: StatusCode,
+    details: Option<T>,
+) -> Result<Response<Body>, hyper::Error>
+where
+    T: Serialize,
+{
+    let error_response = serde_json::json!(HttpError {
+        status: status_code.as_u16(),
+        reason: status_code.canonical_reason(),
+        details,
     });
     response_json(status_code, error_response)
 }
@@ -81,7 +90,14 @@ pub async fn handler(
             };
 
             let format = image.format().unwrap();
-            let image = image.decode().unwrap();
+            let image = image.decode();
+            if let Err(image_error) = image {
+                return error_handle(
+                    StatusCode::BAD_REQUEST,
+                    Some(crate::error::ImageError { image_error }),
+                );
+            }
+            let image = image.unwrap();
             let image = image::DynamicImage::to_rgba8(&image);
             let image = DisplayImage::new(image, size, format);
 
@@ -127,6 +143,6 @@ pub async fn handler(
             Ok(cors)
         }
 
-        _ => error_handle(StatusCode::NOT_FOUND),
+        _ => error_handle::<crate::error::NoError>(StatusCode::NOT_FOUND, None),
     }
 }
