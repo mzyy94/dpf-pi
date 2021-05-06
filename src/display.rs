@@ -95,8 +95,10 @@ impl Serialize for ContentMode {
         S: serde::Serializer,
     {
         match self {
-            ContentMode::Aspect(mode) => s.serialize_str(&format!("Aspect{:?}", mode)),
-            _ => s.serialize_str(&format!("{:?}", *self)),
+            ContentMode::Aspect(mode) => {
+                s.serialize_str(&format!("Aspect_{:?}", mode).to_lowercase())
+            }
+            _ => s.serialize_str(&format!("{:?}", *self).to_lowercase()),
         }
     }
 }
