@@ -29,6 +29,22 @@ impl Query<'_> {
     }
 }
 
+fn error_handle(status_code: StatusCode) -> Result<Response<Body>, hyper::Error> {
+    let error_response = serde_json::json!({
+        "status": status_code.as_u16(),
+        "error": status_code.canonical_reason(),
+    });
+    let text = serde_json::to_string(&error_response).unwrap();
+
+    let mut not_found = Response::new(Body::from(text));
+    *not_found.status_mut() = status_code;
+    not_found.headers_mut().append(
+        hyper::header::CONTENT_TYPE,
+        hyper::header::HeaderValue::from_static("application/json"),
+    );
+    Ok(not_found)
+}
+
 pub async fn handler(
     req: Request<Body>,
     pipeline: Arc<Mutex<Pipeline>>,
@@ -105,10 +121,6 @@ pub async fn handler(
             Ok(cors)
         }
 
-        _ => {
-            let mut not_found = Response::default();
-            *not_found.status_mut() = StatusCode::NOT_FOUND;
-            Ok(not_found)
-        }
+        _ => error_handle(StatusCode::NOT_FOUND),
     }
 }
