@@ -17,6 +17,10 @@ fn main() {
 
 fn build_binding() {
     let vc_root = env::var("VC_ROOT").unwrap_or("/opt/vc".to_string());
+    let flag_sysroot = env::var("SYSROOT").map_or("-invalid-argument".to_string(), |sysroot| {
+        format!("--sysroot={}", sysroot)
+    });
+
     cc::Build::new()
         .warnings(false)
         .flag("-Wall")
@@ -26,6 +30,7 @@ fn build_binding() {
         .flag("-Wno-sign-compare")
         .flag("-pipe")
         .flag("-fPIC")
+        .flag_if_supported(flag_sysroot.as_str())
         .define("STANDALONE", None)
         .define("__STDC_CONSTANT_MACROS", None)
         .define("__STDC_LIMIT_MACROS", None)
@@ -75,7 +80,6 @@ fn build_binding() {
         .clang_arg(format!("-I{}/src/hello_pi/libs/ilclient", vc_root))
         .clang_arg(format!("-I{}/src/hello_pi/libs/vgfont", vc_root))
         .clang_arg(format!("-I{}/src/hello_pi/libs/revision", vc_root))
-        .clang_arg("-I/usr/lib/gcc/arm-linux-gnueabihf/8/include/")
         .header(format!("{}/include/bcm_host.h", vc_root))
         .header(format!("{}/src/hello_pi/libs/ilclient/ilclient.h", vc_root))
         .header("./wrapper.h");
