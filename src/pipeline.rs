@@ -8,8 +8,9 @@ use crate::component::*;
 use crate::display::*;
 use crate::error::{Operation, PipelineError};
 use crate::vc::*;
+use gotham_derive::*;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Copy, Clone, StateData)]
 pub struct Pipeline {
     client: i32,
     buffer_header: i32,

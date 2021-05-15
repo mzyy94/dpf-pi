@@ -8,7 +8,7 @@ use std::os::raw::c_void;
 use crate::error::PipelineError;
 use crate::vc::*;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Copy, Clone)]
 pub struct Component {
     pub component: i32,
     pub in_port: u32,

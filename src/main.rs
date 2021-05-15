@@ -12,13 +12,11 @@ mod vc;
 use pipeline::*;
 use vc::*;
 
+use futures::prelude::*;
 use getopts::Options;
-use hyper::service::{make_service_fn, service_fn};
-use hyper::Server;
 use std::env;
 use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 use std::process::exit;
-use std::sync::{Arc, Mutex};
 
 async fn shutdown_signal() {
     tokio::signal::ctrl_c()
@@ -67,23 +65,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     omx::init();
 
     let (width, height) = omx::get_display_size(0);
-    let pipeline = Arc::new(Mutex::new(Pipeline::new(width, height)));
-    pipeline.lock().unwrap().init().unwrap();
+    let mut pipeline = Pipeline::new(width, height);
+    pipeline.init().unwrap();
 
-    let service_pipeline = pipeline.clone();
-    let service = make_service_fn(move |_| {
-        let pipeline = service_pipeline.clone();
-        async { Ok::<_, hyper::Error>(service_fn(move |req| api::handler(req, pipeline.clone()))) }
-    });
+    let server = gotham::init_server(addr, crate::api::router(pipeline));
 
-    let server = Server::bind(&addr).serve(service);
     println!("Listening on http://{}", addr);
-    let graceful = server.with_graceful_shutdown(shutdown_signal());
-    if let Err(e) = graceful.await {
-        eprintln!("Server error: {}", e);
-    }
+    future::select(server.boxed(), shutdown_signal().boxed()).await;
 
-    pipeline.lock().unwrap().destroy().unwrap();
+    pipeline.destroy().unwrap();
     omx::deinit();
     println!("See you!");
     Ok(())
