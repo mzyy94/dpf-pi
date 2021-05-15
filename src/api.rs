@@ -2,7 +2,7 @@
 Copyright (c) 2021, Yuki MIZUNO
 SPDX-License-Identifier: BSD-3-Clause
 */
-use serde::{Deserialize, Serialize};
+use serde::Deserialize;
 
 use gotham::handler::*;
 use gotham::hyper::{self, Body, Response, StatusCode};
@@ -18,43 +18,13 @@ use crate::display::*;
 use crate::error::*;
 use crate::pipeline::*;
 
-fn response_json(
-    status_code: StatusCode,
-    value: serde_json::Value,
-) -> Result<Response<Body>, HandlerError> {
-    let text = serde_json::to_string(&value).unwrap();
-
-    let mut response = Response::new(Body::from(text));
-    *response.status_mut() = status_code;
-    response.headers_mut().append(
-        hyper::header::CONTENT_TYPE,
-        hyper::header::HeaderValue::from_static("application/json"),
-    );
-    Ok(response)
-}
-
-fn error_handle<T>(
-    status_code: StatusCode,
-    details: Option<T>,
-) -> Result<Response<Body>, HandlerError>
-where
-    T: Serialize,
-{
-    let error_response = serde_json::json!(HttpError {
-        status: status_code.as_u16(),
-        reason: status_code.canonical_reason(),
-        details,
-    });
-    response_json(status_code, error_response)
-}
-
 #[derive(Deserialize, StateData, StaticResponseExtender)]
 struct ImageDisplayOption {
     format: Option<String>,
     mode: Option<String>,
 }
 
-async fn show_image(state: &mut State) -> Result<Response<Body>, HandlerError> {
+async fn show_image(state: &mut State) -> Result<impl IntoResponse, HandlerError> {
     use image::io::Reader as ImageReader;
     use image::ImageFormat::{Bmp, Jpeg, Png};
 
@@ -81,10 +51,11 @@ async fn show_image(state: &mut State) -> Result<Response<Body>, HandlerError> {
     let format = image.format().unwrap();
     let image = image.decode();
     if let Err(image_error) = image {
-        return error_handle(
-            StatusCode::BAD_REQUEST,
-            Some(crate::error::ImageError { image_error }),
-        );
+        return Ok(DisplayResult {
+            status: StatusCode::BAD_REQUEST,
+            error: Some(ImageError { image_error }),
+            ..Default::default()
+        });
     }
     let image = image.unwrap();
     let image = image::DynamicImage::to_rgba8(&image);
@@ -106,12 +77,11 @@ async fn show_image(state: &mut State) -> Result<Response<Body>, HandlerError> {
         pipeline.render_image(&image, content_mode, 2000).unwrap();
     }
 
-    let render_config = serde_json::json!({
-        "status": StatusCode::OK.as_u16(),
-        "image": image,
-        "content_mode": content_mode,
-    });
-    response_json(StatusCode::OK, render_config)
+    Ok(DisplayResult {
+        image: Some(image),
+        content_mode: Some(content_mode),
+        ..Default::default()
+    })
 }
 
 async fn cors(state: &mut State) -> Result<Response<Body>, HandlerError> {

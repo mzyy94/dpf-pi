@@ -245,6 +245,7 @@ dependencies = [
  "gotham",
  "gotham_derive",
  "image",
+ "mime",
  "serde",
  "serde_json",
  "tokio",
