@@ -8,6 +8,7 @@ use futures::prelude::*;
 use gotham::handler::*;
 use gotham::helpers::http::response::create_empty_response;
 use gotham::hyper::{self, Body, Response, StatusCode};
+use gotham::middleware::logger::RequestLogger;
 use gotham::middleware::{state::StateMiddleware, Middleware};
 use gotham::pipeline::{new_pipeline, single::single_pipeline};
 use gotham::router::{builder::*, Router};
@@ -121,6 +122,7 @@ fn empty(state: State) -> (State, Response<Body>) {
 pub fn router(pipeline: Pipeline) -> Router {
     let middleware = StateMiddleware::new(pipeline);
     let pipeline = new_pipeline()
+        .add(RequestLogger::new(log::Level::Info))
         .add(middleware)
         .add(CORSMiddleware::default())
         .build();

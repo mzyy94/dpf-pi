@@ -240,11 +240,13 @@ version = "0.1.0"
 dependencies = [
  "bindgen",
  "cc",
+ "env_logger",
  "futures",
  "getopts",
  "gotham",
  "gotham_derive",
  "image",
+ "log",
  "mime",
  "serde",
  "serde_json",

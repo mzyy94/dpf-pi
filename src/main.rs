@@ -62,6 +62,9 @@ fn parse_opts() -> SocketAddr {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
     let addr = parse_opts();
+
+    env_logger::init();
+
     omx::init();
 
     let (width, height) = omx::get_display_size(0);
