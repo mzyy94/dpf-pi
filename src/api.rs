@@ -4,15 +4,16 @@ SPDX-License-Identifier: BSD-3-Clause
 */
 use serde::Deserialize;
 
+use futures::prelude::*;
 use gotham::handler::*;
+use gotham::helpers::http::response::create_empty_response;
 use gotham::hyper::{self, Body, Response, StatusCode};
-use gotham::middleware::state::StateMiddleware;
-use gotham::pipeline::single::single_pipeline;
-use gotham::pipeline::single_middleware;
-use gotham::router::builder::*;
-use gotham::router::Router;
+use gotham::middleware::{state::StateMiddleware, Middleware};
+use gotham::pipeline::{new_pipeline, single::single_pipeline};
+use gotham::router::{builder::*, Router};
 use gotham::state::{FromState, State};
 use gotham_derive::*;
+use std::pin::Pin;
 
 use crate::display::*;
 use crate::error::*;
@@ -30,7 +31,7 @@ async fn show_image(state: &mut State) -> Result<impl IntoResponse, HandlerError
 
     let body = Body::take_from(state);
     let query = ImageDisplayOption::take_from(state);
-    let headers = hyper::HeaderMap::take_from(state);
+    let headers = hyper::HeaderMap::borrow_from(state);
 
     let whole_body = hyper::body::to_bytes(body).await?;
     let size = whole_body.len();
@@ -84,35 +85,53 @@ async fn show_image(state: &mut State) -> Result<impl IntoResponse, HandlerError
     })
 }
 
-async fn cors(state: &mut State) -> Result<Response<Body>, HandlerError> {
-    let headers = hyper::HeaderMap::take_from(state);
-    let mut cors = Response::default();
-    *cors.status_mut() = StatusCode::OK;
-    for (key, value) in headers {
-        use hyper::header::*;
-        let key = match key {
-            Some(ACCESS_CONTROL_REQUEST_HEADERS) => ACCESS_CONTROL_ALLOW_HEADERS,
-            Some(ACCESS_CONTROL_REQUEST_METHOD) => ACCESS_CONTROL_ALLOW_METHODS,
-            Some(ORIGIN) => ACCESS_CONTROL_ALLOW_ORIGIN,
-            _ => continue,
-        };
-        cors.headers_mut().insert(key, value.clone());
-    }
+#[derive(Clone, NewMiddleware, Debug, PartialEq, Default)]
+struct CORSMiddleware {}
 
-    Ok(cors)
+impl Middleware for CORSMiddleware {
+    fn call<Chain>(self, state: State, chain: Chain) -> Pin<Box<HandlerFuture>>
+    where
+        Chain: FnOnce(State) -> Pin<Box<HandlerFuture>>,
+    {
+        chain(state)
+            .and_then(|(state, mut response)| {
+                use hyper::header::*;
+                let headers = HeaderMap::borrow_from(&state);
+                for (key, value) in headers {
+                    let key = match key {
+                        &ACCESS_CONTROL_REQUEST_HEADERS => ACCESS_CONTROL_ALLOW_HEADERS,
+                        &ACCESS_CONTROL_REQUEST_METHOD => ACCESS_CONTROL_ALLOW_METHODS,
+                        &ORIGIN => ACCESS_CONTROL_ALLOW_ORIGIN,
+                        _ => continue,
+                    };
+                    response.headers_mut().insert(key, value.clone());
+                }
+                future::ok((state, response))
+            })
+            .boxed()
+    }
+}
+
+fn empty(state: State) -> (State, Response<Body>) {
+    let resp = create_empty_response(&state, StatusCode::NO_CONTENT);
+
+    (state, resp)
 }
 
 pub fn router(pipeline: Pipeline) -> Router {
     let middleware = StateMiddleware::new(pipeline);
-    let pipeline = single_middleware(middleware);
+    let pipeline = new_pipeline()
+        .add(middleware)
+        .add(CORSMiddleware::default())
+        .build();
     let (chain, pipelines) = single_pipeline(pipeline);
 
     build_router(chain, pipelines, |route| {
+        route.options("/image/show").to(empty);
+
         route
             .post("/image/show")
-            .with_query_string_extractor::<crate::api::ImageDisplayOption>()
-            .to_async_borrowing(crate::api::show_image);
-
-        route.options("*").to_async_borrowing(crate::api::cors);
+            .with_query_string_extractor::<ImageDisplayOption>()
+            .to_async_borrowing(show_image);
     })
 }
