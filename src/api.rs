@@ -70,12 +70,7 @@ async fn show_image(state: &mut State) -> Result<impl IntoResponse, HandlerError
         }
     };
 
-    let content_mode = match query.mode.as_deref() {
-        Some("AspectFit") | Some("aspect_fit") | None => ContentMode::Aspect(AspectMode::Fit),
-        Some("AspectFill") | Some("aspect_fill") => ContentMode::Aspect(AspectMode::Fill),
-        Some("Fill") | Some("fill") => ContentMode::ScaleToFill,
-        Some(_) => ContentMode::None,
-    };
+    let content_mode = ContentMode::from_str(query.mode.as_deref().unwrap_or_default());
 
     let pipeline = Pipeline::borrow_mut_from(state);
     pipeline.render_image(&image, content_mode, 2000).unwrap();

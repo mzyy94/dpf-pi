@@ -103,3 +103,14 @@ impl Serialize for ContentMode {
         }
     }
 }
+
+impl ContentMode {
+    pub fn from_str(mode: &str) -> Self {
+        match mode {
+            "AspectFit" | "aspect_fit" => ContentMode::Aspect(AspectMode::Fit),
+            "AspectFill" | "aspect_fill" => ContentMode::Aspect(AspectMode::Fill),
+            "Fill" | "fill" => ContentMode::ScaleToFill,
+            _ => ContentMode::None,
+        }
+    }
+}
