@@ -266,3 +266,15 @@ pub mod omx {
         }
     }
 }
+
+pub mod tv {
+    use super::*;
+
+    pub fn hdmi_power_on_preferred() {
+        unsafe { tv_hdmi_power_on_preferred() };
+    }
+
+    pub fn power_off() {
+        unsafe { tv_power_off() };
+    }
+}

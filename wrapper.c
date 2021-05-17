@@ -8,6 +8,7 @@ SPDX-License-Identifier: BSD-3-Clause
 #include <malloc.h>
 #include "bcm_host.h"
 #include "ilclient.h"
+#include "interface/vmcs_host/vc_tvservice.h"
 
 OMX_S32 wOMX_SetConfig(OMX_HANDLETYPE hComponent, OMX_INDEXTYPE nConfigIndex, void *pComponentConfigStructure)
 {
@@ -42,4 +43,38 @@ OMX_S32 wOMX_UseBuffer(OMX_HANDLETYPE hComponent, OMX_BUFFERHEADERTYPE **ppBuffe
 OMX_S32 wOMX_FreeBuffer(OMX_HANDLETYPE hComponent, OMX_U32 nPortIndex, OMX_BUFFERHEADERTYPE *pBuffer)
 {
   return OMX_FreeBuffer(hComponent, nPortIndex, pBuffer);
+}
+
+void tv_hdmi_power_on_preferred()
+{
+  VCHI_INSTANCE_T vchi_instance;
+  VCHI_CONNECTION_T *vchi_connection;
+
+  vcos_init();
+  vchi_initialise(&vchi_instance);
+  vchi_connect(NULL, 0, vchi_instance);
+  vc_vchi_tv_init(vchi_instance, &vchi_connection, 1);
+
+  vc_tv_hdmi_power_on_preferred();
+
+  vc_vchi_tv_stop();
+  vchi_disconnect(vchi_instance);
+  vcos_deinit();
+}
+
+void tv_power_off()
+{
+  VCHI_INSTANCE_T vchi_instance;
+  VCHI_CONNECTION_T *vchi_connection;
+
+  vcos_init();
+  vchi_initialise(&vchi_instance);
+  vchi_connect(NULL, 0, vchi_instance);
+  vc_vchi_tv_init(vchi_instance, &vchi_connection, 1);
+
+  vc_tv_power_off();
+
+  vc_vchi_tv_stop();
+  vchi_disconnect(vchi_instance);
+  vcos_deinit();
 }

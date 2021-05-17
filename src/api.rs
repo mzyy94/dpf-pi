@@ -119,6 +119,26 @@ fn empty(state: State) -> (State, Response<Body>) {
     (state, resp)
 }
 
+fn display_off(state: State) -> (State, impl IntoResponse) {
+    crate::vc::tv::power_off();
+    let resp = DisplayPower {
+        status: StatusCode::OK,
+        power: Some(false),
+    };
+
+    (state, resp)
+}
+
+fn display_on(state: State) -> (State, impl IntoResponse) {
+    crate::vc::tv::hdmi_power_on_preferred();
+    let resp = DisplayPower {
+        status: StatusCode::OK,
+        power: Some(true),
+    };
+
+    (state, resp)
+}
+
 pub fn router(pipeline: Pipeline) -> Router {
     let middleware = StateMiddleware::new(pipeline);
     let pipeline = new_pipeline()
@@ -135,5 +155,8 @@ pub fn router(pipeline: Pipeline) -> Router {
             .post("/image/show")
             .with_query_string_extractor::<ImageDisplayOption>()
             .to_async_borrowing(show_image);
+
+        route.post("/display/power/on").to(display_on);
+        route.post("/display/power/off").to(display_off);
     })
 }

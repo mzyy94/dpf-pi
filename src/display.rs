@@ -199,3 +199,22 @@ impl IntoResponse for DisplayResult {
         )
     }
 }
+
+#[derive(Debug, Serialize, Default)]
+pub struct DisplayPower {
+    #[serde(serialize_with = "status_serde")]
+    pub status: StatusCode,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub power: Option<bool>,
+}
+
+impl IntoResponse for DisplayPower {
+    fn into_response(self, state: &State) -> Response<Body> {
+        create_response(
+            state,
+            self.status,
+            mime::APPLICATION_JSON,
+            serde_json::to_string(&self).expect("serialize JSON"),
+        )
+    }
+}
