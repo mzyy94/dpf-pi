@@ -7,7 +7,7 @@ use serde::Deserialize;
 use futures::prelude::*;
 use gotham::handler::*;
 use gotham::helpers::http::response::create_empty_response;
-use gotham::hyper::{self, Body, Response, StatusCode};
+use gotham::hyper::{self, body::Bytes, Body, Response, StatusCode};
 use gotham::middleware::logger::RequestLogger;
 use gotham::middleware::{state::StateMiddleware, Middleware};
 use gotham::pipeline::{new_pipeline, single::single_pipeline};
@@ -26,24 +26,14 @@ struct ImageDisplayOption {
     mode: Option<String>,
 }
 
-async fn show_image(state: &mut State) -> Result<impl IntoResponse, HandlerError> {
+fn load_image(body: Bytes, format: Option<&str>) -> Result<DisplayImage, ImageError> {
     use image::io::Reader as ImageReader;
     use image::ImageFormat::{Bmp, Jpeg, Png};
 
-    let body = Body::take_from(state);
-    let query = ImageDisplayOption::take_from(state);
-    let headers = hyper::HeaderMap::borrow_from(state);
-
-    let whole_body = hyper::body::to_bytes(body).await?;
-    let size = whole_body.len();
-    let cur = std::io::Cursor::new(whole_body);
-
+    let size = body.len();
+    let cur = std::io::Cursor::new(body);
     let mut image = ImageReader::new(cur);
-    let format = query.format.or(headers
-        .get(hyper::header::CONTENT_TYPE)
-        .and_then(|f| f.to_str().ok().and_then(|s| Some(String::from(s)))));
-
-    match format.as_deref() {
+    match format {
         Some("image/png") | Some("png") => image.set_format(Png),
         Some("image/jpeg") | Some("jpeg") | Some("jpg") => image.set_format(Jpeg),
         Some("image/bmp") | Some("bmp") => image.set_format(Bmp),
@@ -53,15 +43,32 @@ async fn show_image(state: &mut State) -> Result<impl IntoResponse, HandlerError
     let format = image.format().unwrap();
     let image = image.decode();
     if let Err(image_error) = image {
+        return Err(ImageError { image_error });
+    }
+    let image = image.unwrap();
+    let image = image::DynamicImage::to_rgba8(&image);
+    Ok(DisplayImage::new(image, size, format))
+}
+
+async fn show_image(state: &mut State) -> Result<impl IntoResponse, HandlerError> {
+    let body = Body::take_from(state);
+    let query = ImageDisplayOption::take_from(state);
+    let headers = hyper::HeaderMap::borrow_from(state);
+
+    let whole_body = hyper::body::to_bytes(body).await?;
+    let format = query.format.or(headers
+        .get(hyper::header::CONTENT_TYPE)
+        .and_then(|f| f.to_str().ok().and_then(|s| Some(String::from(s)))));
+
+    let image = load_image(whole_body, format.as_deref());
+    if let Err(err) = image {
         return Ok(DisplayResult {
             status: StatusCode::BAD_REQUEST,
-            error: Some(ImageError { image_error }),
+            error: Some(err),
             ..Default::default()
         });
     }
     let image = image.unwrap();
-    let image = image::DynamicImage::to_rgba8(&image);
-    let image = DisplayImage::new(image, size, format);
 
     let content_mode = match query.mode.as_deref() {
         Some("AspectFit") | Some("aspect_fit") | None => ContentMode::Aspect(AspectMode::Fit),
