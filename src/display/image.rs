@@ -2,10 +2,7 @@
 Copyright (c) 2021, Yuki MIZUNO
 SPDX-License-Identifier: BSD-3-Clause
 */
-use gotham::handler::IntoResponse;
-use gotham::helpers::http::response::create_response;
-use gotham::hyper::{Body, Response, StatusCode};
-use gotham::state::State;
+
 use image::{ImageBuffer, ImageFormat, Rgba, RgbaImage};
 use serde::Serialize;
 
@@ -104,117 +101,5 @@ impl Serialize for ContentMode {
             }
             _ => s.serialize_str(&format!("{:?}", *self).to_lowercase()),
         }
-    }
-}
-
-#[derive(Debug)]
-pub struct DisplayRect {
-    pub x: i16,
-    pub y: i16,
-    pub w: i16,
-    pub h: i16,
-}
-
-impl DisplayRect {
-    pub fn new_with_mode(mode: ContentMode, viewport: (u32, u32), image: (u32, u32)) -> Self {
-        let ((vw, vh), (w, h)) = (viewport, image);
-        let viewport_aspect = vw as f32 / vh as f32;
-        let image_aspect = w as f32 / h as f32;
-        let ratio = image_aspect / viewport_aspect;
-        let (vw, vh, w, h) = (vw as i16, vh as i16, w as i16, h as i16);
-
-        match mode {
-            ContentMode::None => Self {
-                x: (vw - w) / 2,
-                y: (vh - h) / 2,
-                w: w,
-                h: h,
-            },
-            ContentMode::ScaleToFill => Self {
-                x: 0i16,
-                y: 0i16,
-                w: vw,
-                h: vh,
-            },
-            ContentMode::Aspect(mode) => {
-                let w = (vw as f32 * ratio) as i16;
-                let h = (vh as f32 / ratio) as i16;
-                let ratio = match mode {
-                    AspectMode::Fit => ratio,
-                    AspectMode::Fill => 1f32 / ratio,
-                };
-                if ratio == 1f32 {
-                    Self {
-                        x: 0i16,
-                        y: 0i16,
-                        w: vw,
-                        h: vh,
-                    }
-                } else if ratio < 1f32 {
-                    Self {
-                        x: ((vw - w) / 2),
-                        y: 0,
-                        w: w,
-                        h: vh,
-                    }
-                } else {
-                    Self {
-                        x: 0,
-                        y: ((vh - h) / 2),
-                        w: vw,
-                        h: h,
-                    }
-                }
-            }
-        }
-    }
-}
-
-#[derive(Debug, Serialize, Default)]
-pub struct DisplayResult {
-    #[serde(serialize_with = "status_serde")]
-    pub status: StatusCode,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub image: Option<DisplayImage>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub content_mode: Option<ContentMode>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub error: Option<crate::error::ImageError>,
-}
-
-fn status_serde<S>(status: &StatusCode, s: S) -> Result<S::Ok, S::Error>
-where
-    S: serde::Serializer,
-{
-    s.serialize_str(&format!("{}", status.as_u16()))
-}
-
-impl IntoResponse for DisplayResult {
-    fn into_response(self, state: &State) -> Response<Body> {
-        create_response(
-            state,
-            self.status,
-            mime::APPLICATION_JSON,
-            serde_json::to_string(&self).expect("serialize JSON"),
-        )
-    }
-}
-
-#[derive(Debug, Serialize, Default)]
-pub struct DisplayPower {
-    #[serde(serialize_with = "status_serde")]
-    pub status: StatusCode,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub power: Option<bool>,
-}
-
-impl IntoResponse for DisplayPower {
-    fn into_response(self, state: &State) -> Response<Body> {
-        create_response(
-            state,
-            self.status,
-            mime::APPLICATION_JSON,
-            serde_json::to_string(&self).expect("serialize JSON"),
-        )
     }
 }

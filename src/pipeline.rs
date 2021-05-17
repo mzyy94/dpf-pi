@@ -5,7 +5,7 @@ SPDX-License-Identifier: BSD-3-Clause
 use std::mem::size_of;
 
 use crate::component::*;
-use crate::display::*;
+use crate::display::{image::*, rect::*};
 use crate::error::{Operation, PipelineError};
 use crate::vc::*;
 use gotham_derive::*;

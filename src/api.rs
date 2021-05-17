@@ -16,7 +16,7 @@ use gotham::state::{FromState, State};
 use gotham_derive::*;
 use std::pin::Pin;
 
-use crate::display::*;
+use crate::display::{image::*, power::*, result::*};
 use crate::error::*;
 use crate::pipeline::*;
 
