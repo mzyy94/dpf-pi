@@ -41,11 +41,10 @@ fn load_image(body: Bytes, format: Option<&str>) -> Result<DisplayImage, ImageEr
     };
 
     let format = image.format().unwrap();
-    let image = image.decode();
-    if let Err(image_error) = image {
-        return Err(ImageError { image_error });
-    }
-    let image = image.unwrap();
+    let image = match image.decode() {
+        Ok(image) => image,
+        Err(image_error) => return Err(ImageError { image_error }),
+    };
     let image = image::DynamicImage::to_rgba8(&image);
     Ok(DisplayImage::new(image, size, format))
 }
@@ -60,15 +59,16 @@ async fn show_image(state: &mut State) -> Result<impl IntoResponse, HandlerError
         .get(hyper::header::CONTENT_TYPE)
         .and_then(|f| f.to_str().ok().and_then(|s| Some(String::from(s)))));
 
-    let image = load_image(whole_body, format.as_deref());
-    if let Err(err) = image {
-        return Ok(DisplayResult {
-            status: StatusCode::BAD_REQUEST,
-            error: Some(err),
-            ..Default::default()
-        });
-    }
-    let image = image.unwrap();
+    let image = match load_image(whole_body, format.as_deref()) {
+        Ok(image) => image,
+        Err(err) => {
+            return Ok(DisplayResult {
+                status: StatusCode::BAD_REQUEST,
+                error: Some(err),
+                ..Default::default()
+            })
+        }
+    };
 
     let content_mode = match query.mode.as_deref() {
         Some("AspectFit") | Some("aspect_fit") | None => ContentMode::Aspect(AspectMode::Fit),
