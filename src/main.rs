@@ -3,11 +3,19 @@ Copyright (c) 2021, Yuki MIZUNO
 SPDX-License-Identifier: BSD-3-Clause
 */
 mod api;
+#[cfg(all(target_os = "linux", feature = "raspberry-pi"))]
 mod component;
 mod display;
 mod error;
+#[cfg(all(target_os = "linux", feature = "raspberry-pi"))]
 mod pipeline;
+#[cfg(all(target_os = "linux", feature = "raspberry-pi"))]
 mod vc;
+
+#[cfg(not(all(target_os = "linux", feature = "raspberry-pi")))]
+mod dummy;
+#[cfg(not(all(target_os = "linux", feature = "raspberry-pi")))]
+use dummy::{pipeline, vc};
 
 use pipeline::*;
 use vc::*;

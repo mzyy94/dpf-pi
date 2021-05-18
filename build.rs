@@ -7,6 +7,7 @@ extern crate cc;
 use std::env;
 use std::path::PathBuf;
 
+#[cfg(all(target_os = "linux", feature = "raspberry-pi"))]
 fn main() {
     let vc_root = env::var("VC_ROOT").unwrap_or("/opt/vc".to_string());
     println!("cargo:rerun-if-changed=build.rs");
@@ -19,6 +20,10 @@ fn main() {
     build_binding();
 }
 
+#[cfg(not(all(target_os = "linux", feature = "raspberry-pi")))]
+fn main() {}
+
+#[cfg(all(target_os = "linux", feature = "raspberry-pi"))]
 fn build_binding() {
     let vc_root = env::var("VC_ROOT").unwrap_or("/opt/vc".to_string());
     let flag_sysroot = env::var("SYSROOT").map_or("-invalid-argument".to_string(), |sysroot| {
